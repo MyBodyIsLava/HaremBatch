@@ -1,0 +1,24 @@
+# HaremBatch Git Ignore
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# User Data
+/output/
+/characters/*.json
+/styles/*.json
+/presets/*.json
+/templates/
+/config.json
+/generation_config.json
+/_lastgen.json
+
+# Keep folders but ignore contents
+!characters/
+!styles/
+!presets/
+!templates/
+!output/
