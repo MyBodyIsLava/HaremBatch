@@ -484,8 +484,9 @@ def generate_characters_batch(
         char_height = base_height # API payload always uses base height now
         
         
-        current_positive = char.get("positive", "")
-        current_negative = char.get("negative", "")
+        # Start with common prompts as the absolute base
+        current_positive = gen_cfg.get("common_prompt", "")
+        current_negative = gen_cfg.get("common_negative", "")
         
         def extract_pn(data):
             if isinstance(data, str): return data, ""
@@ -503,34 +504,38 @@ def generate_characters_batch(
              if layer_neg_clean:
                  current_negative = f"{current_negative}, {layer_neg_clean}" if current_negative else layer_neg_clean
 
-        # 1. Body Parts
+        # 1. Character Base
+        apply_layer(char.get("positive", ""), char.get("negative", ""))
+
+        # 2. Body Parts
         for bk in body_keys:
              p, n = extract_pn(char.get("body", {}).get(bk, {}))
              apply_layer(p, n)
              
-        # 2. Morphs
+        # 3. Morphs
         for mk in morph_keys:
              p, n = extract_pn(char.get("morphs", {}).get(mk, {}))
              apply_layer(p, n)
 
-        # 3. Outfits
+        # 4. Outfits
         for ok in outfit_keys:
              p, n = extract_pn(char.get("outfits", {}).get(ok, {}))
              apply_layer(p, n)
         
-        # 4. Styles
+        # 5. Styles
         for s in loaded_styles:
             apply_layer(s.get("positive", ""), s.get("negative", ""))
             
-        # 5. Set Prompts
+        # 6. Set Prompts
         if set_prompt or set_negative:
              apply_layer(set_prompt or "", set_negative or "")
 
         char_positive = current_positive
         char_negative = current_negative
         
-        full_prompt = f"{gen_cfg['common_prompt']}, {char_positive}" if gen_cfg['common_prompt'] else char_positive
-        full_negative = f"{gen_cfg['common_negative']}, {char_negative}" if gen_cfg['common_negative'] else char_negative
+        # We no longer prepend common prompts here because they are handled in the accumulator
+        full_prompt = char_positive
+        full_negative = char_negative
         
         height_label = HEIGHT_GUIDES.get(height_guide_key, {}).get("label", "Average")
         yield (generated_images[-1] if generated_images else None), f"Generating {char_name} [{height_label}] ({i+1}/{len(active_chars)})..."

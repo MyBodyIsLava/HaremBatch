@@ -7,20 +7,19 @@ venv/
 ENV/
 
 # User Data
-/output/
-/characters/*.json
-/styles/*.json
-/presets/*.json
-/templates/
+/output/*
+!/output/.gitkeep
+/characters/*
+!/characters/.gitkeep
+/styles/*
+!/styles/.gitkeep
+/presets/*
+!/presets/.gitkeep
+/templates/*
+!/templates/.gitkeep
+/inputs/*
+!/inputs/.gitkeep
+
 /config.json
 /generation_config.json
 /_lastgen.json
-
-# Keep folders but ignore contents
-!characters/
-!styles/
-!presets/
-!templates/
-!output/
-/output
-/inputs

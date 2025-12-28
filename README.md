@@ -220,17 +220,19 @@ A **style** is a prompt preset that applies to ANY character. Ideal for applying
 2. Click **➕ New Style**
 3. Fill in:
 
-**Example: Manga Style (no LoRA)**
+**Example: Manga Style (no LoRA required)**
 | Field | Value |
 |-------|-------|
 | **Name** | `Manga Style` |
+| **Model Category** | `Illustrious` |
 | **Positive Prompt** | `manga, monochrome, greyscale, screentone, halftone, comic, lineart` |
 | **Negative Prompt** | `color, colorful, painted, 3d` |
 
-**Example: Anime Style (no LoRA)**
+**Example: Anime Style (no LoRA required)**
 | Field | Value |
 |-------|-------|
 | **Name** | `Anime Style` |
+| **Model Category** | `Illustrious` |
 | **Positive Prompt** | `anime, anime style, cel shading, vibrant colors, clean lines` |
 | **Negative Prompt** | `realistic, photorealistic, 3d render` |
 
@@ -318,33 +320,32 @@ The **Model** dropdown lists all checkpoints available in Forge. This requires F
 | **Width / Height** | Image dimensions. Use SDXL-compatible sizes | 832×1216 (portrait) |
 | **Sampler** | Algorithm for generation | Euler a, DPM++ 2M |
 
-### Common Prompts vs Set Prompts
+### Prompt Hierarchy Example
 
-HaremBatch has **two levels** of prompts that apply globally:
+HaremBatch handles prompts at different levels to separate character details from general poses and quality tags.
 
-| Prompt Type | Where | Scope | Best For |
-|-------------|-------|-------|----------|
-| **Common Prompt** | ⚙️ Forge Server tab | ALL generations, ALL sets | Quality tags (`score_9, masterpiece`), general style |
-| **Common Negative** | ⚙️ Forge Server tab | ALL generations, ALL sets | Universal negatives (`bad quality, watermark`) |
-| **Set Prompt** | 🚀 Generation tab | Only this batch | Pose, action, scene (`standing, looking at viewer`) |
-| **Set Negative** | 🚀 Generation tab | Only this batch | Batch-specific exclusions |
+| Prompt Level | Set In | Purpose |
+|--------------|--------|---------|
+| **Global (Common)** | ⚙️ Forge Server tab | Quality tags and universal negatives applied to ALL generations. |
+| **Set (Batch)** | 🚀 Generation tab | Poses, actions, and scene details specific to the current batch. |
+| **Character/Style** | Respective Editor tabs | Core identity and art style definitions. |
 
-#### Example Workflow
+#### Concrete Example
 
-**In Settings (Common)** - Things you ALWAYS want:
+**Global Settings (Common)** - Things you ALWAYS want:
 ```
 Common Prompt: score_9, score_8_up, masterpiece, best quality, detailed, highres
 Common Negative: bad quality, worst quality, watermark, censored, text
 ```
 
-**In Generation (Set)** - Things specific to THIS batch:
+**Generation Tab (Set)** - Things specific to THIS batch:
 ```
 Set Prompt: standing, full body, looking at viewer, simple background
 Set Negative: sitting, lying down
 ```
 
 > [!TIP]
-> Keep **Common Prompts** general (quality tags). Put poses and actions in **Set Prompt** so each batch can have different poses.
+> Keep **Common Prompts** general (quality tags). Put poses and actions in **Set Prompt** so each batch can have different poses without editing your settings.
 
 ---
 
@@ -358,15 +359,15 @@ When generating, HaremBatch builds the final prompt by combining **7 layers** in
 
 ```
 1. Common Prompt     →  Quality tags (applies to ALL sets)
-2. Set Prompt        →  Pose/action for THIS batch
-3. Character Base    →  LoRA + character name + gender
-4. Outfit            →  Clothing or nudity state
-5. Morph             →  Body transformation (futa, male, pregnant...)
-6. Body Parts        →  Physical attributes (breast size, hair color...)
-7. Style             →  Art style (manga, anime, lighting...)
+2. Character Base    →  LoRA + character name + gender
+3. Body Parts        →  Physical attributes (breast size, hair color...)
+4. Morph             →  Body transformation (futa, male, pregnant...)
+5. Outfit            →  Clothing or nudity state
+6. Style             →  Art style (manga, anime, lighting...)
+7. Set Prompt        →  Pose/action for THIS batch
 ```
 
-Each layer can add, modify, or even suppress tags from previous layers using the `-"TAG"` syntax.
+Each layer can add, modify, or suppress tags from previous layers using the `-"TAG"` syntax (e.g., `-"1girl"` to remove a tag).
 
 ### Layer-by-Layer Explanation
 
@@ -376,39 +377,53 @@ Each layer can add, modify, or even suppress tags from previous layers using the
 ```
 score_9, score_8_up, masterpiece, best quality, detailed, highres
 ```
-
+ 
 > [!NOTE]
 > This is set once and rarely changed. Keep it general.
-
+ 
 ---
-
-#### 2️⃣ Set Prompt (Generation tab)
-**What it should contain:** Pose, action, scene, background for THIS specific batch.
-
-```
-standing, full body, looking at viewer, simple background
-```
-
-> [!TIP]
-> Change this for each set. One batch standing, another sitting, etc.
-
----
-
-#### 3️⃣ Character Base (Character Editor → Positive Prompt)
+ 
+#### 2️⃣ Character Base (Character Editor → Positive Prompt)
 **What it should contain:** LoRA trigger, character name/tag, gender tag
-
+ 
 ```
 <lora:Rem_IlluXL:0.8> 1girl, rem (re:zero)
 ```
-
+ 
 > [!IMPORTANT]
 > Always include the gender tag here. Morphs will override it if needed.
-
+ 
 ---
-
-#### 4️⃣ Outfits (Character Editor → Outfits section)
+ 
+#### 3️⃣ Body Parts (Generation tab → Body Parts checkboxes)
+**What it should contain:** Physical attributes you want to apply. Only checked body parts are included.
+ 
+**Key principle:** Body parts describe the body itself, NOT clothing or accessories.
+ 
+| Body Part | Good | Bad (creates conflict) |
+|-----------|------|------------------------|
+| `feet` | `toes, arched feet` | `bare feet` ← conflicts with clothed outfits |
+| `back` | `spine, shoulder blades` | `bare back` ← conflicts with clothed outfits |
+| `breast` | `large breasts` | `exposed breasts` ← that's an outfit thing |
+ 
+---
+ 
+#### 4️⃣ Morphs (Character Editor → Morphs section)
+**What it should contain:** Body transformations and gender changes.
+ 
+| Morph | What it does | Example |
+|-------|--------------|---------|
+| `female` | Ensure female appearance | `1girl` |
+| `male` | Change to male | `1boy, -"1girl", -"pussy", male focus` |
+| `futa` | Futanari (female + penis) | `1futa, -"1girl", futanari, penis` |
+| `pregnant` | Add pregnancy | `pregnant, large belly` |
+| `transformation` | Character-specific form (demon, oni, etc.) | `single horn, glowing eyes` |
+ 
+---
+ 
+#### 5️⃣ Outfits (Character Editor → Outfits section)
 **What it should contain:** Clothing and accessories. Each outfit is a complete description of what the character is wearing.
-
+ 
 | Outfit | Purpose | Example |
 |--------|---------|---------|
 | `fully_clothed` | Complete outfit with all clothes | `dress, skirt, thighhighs, gloves` |
@@ -417,54 +432,32 @@ standing, full body, looking at viewer, simple background
 | `topless` | No top, but bottom clothes remain | `topless, skirt, thighhighs` |
 | `bottomless` | No bottom, but top clothes remain | `bottomless, shirt, bra` |
 | `swimsuit` | Beach/pool attire | `bikini, one-piece swimsuit` |
-
-> [!TIP]
-> **virtually_naked** is perfect for characters with iconic accessories (2B's blindfold, Rem's hairband). The character stays mostly nude but keeps their recognizable look.
-
+ 
 ---
-
-#### 5️⃣ Morphs (Character Editor → Morphs section)
-**What it should contain:** Body transformations and gender changes. Uses `-"TAG"` to remove conflicting tags.
-
-| Morph | What it does | Example |
-|-------|--------------|---------|
-| `female` | Ensure female appearance | `1girl` |
-| `male` | Change to male | `1boy, -"1girl", -"pussy", male focus` |
-| `futa` | Futanari (female + penis) | `1futa, -"1girl", futanari, penis` |
-| `pregnant` | Add pregnancy | `pregnant, large belly` |
-| `transformation` | Character-specific form (demon, oni, etc.) | `single horn, glowing eyes` |
-
----
-
-#### 6️⃣ Body Parts (Generation tab → Body Parts checkboxes)
-**What it should contain:** Physical attributes you want to apply. Only checked body parts are included.
-
-**Key principle:** Body parts describe the body itself, NOT clothing or accessories.
-
-| Body Part | Good | Bad (creates conflict) |
-|-----------|------|------------------------|
-| `feet` | `toes, arched feet` | `bare feet` ← conflicts with clothed outfits |
-| `back` | `spine, shoulder blades` | `bare back` ← conflicts with clothed outfits |
-| `breast` | `large breasts` | `exposed breasts` ← that's an outfit thing |
-
----
-
-#### 7️⃣ Styles (Generation tab → Styles dropdown)
+ 
+#### 6️⃣ Styles (Generation tab → Styles dropdown)
 **What it should contain:** Art style, lighting, or visual effects that apply on top of everything.
-
+ 
 ```
 manga, monochrome, screentone, lineart
 ```
-
+ 
 ---
-
+ 
+#### 7️⃣ Set Prompt (Generation tab)
+**What it should contain:** Pose, action, scene, background for THIS specific batch.
+ 
+```
+standing, full body, looking at viewer, simple background
+```
+ 
+---
+ 
 ## 📖 Standardization Guide
-
+ 
 To maintain consistency across your character library, follow these standard definitions for the default layers.
-
+ 
 ### 🤖 Model Category
-Ensure every character JSON has a `"model_category"` field to track which base model it's designed for.
-
 | Category | Description |
 |:---|:---|
 | `Illustrious` | For Illustrious/NoobAI based models (Standard) |

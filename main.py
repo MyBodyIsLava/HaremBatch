@@ -134,7 +134,7 @@ def preload_session():
         lastgen.get("active_outfits", gr.update()),
         lastgen.get("active_morphs", gr.update()),
         lastgen.get("active_body_parts", gr.update()),
-        lastgen.get("active_styles", gr.update()),
+        [s for s in lastgen.get("active_styles", []) if s in get_style_choices()] if "active_styles" in lastgen else gr.update(),
         lastgen.get("set_prompt", gr.update()),
         lastgen.get("set_negative", gr.update()),
         "\n".join(lastgen.get("active_character_names", [])) if "active_character_names" in lastgen else gr.update(),
@@ -256,7 +256,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                             allow_custom_value=False,
                             scale=3
                         )
-                        txt_body_preset_name = gr.Textbox(label="Save As", placeholder="Full Detail", scale=2)
+                        txt_body_preset_save_as = gr.Textbox(label="Save As", placeholder="Full Detail", scale=2)
                         with gr.Column(scale=0, min_width=50):
                             btn_save_body_preset = gr.Button("💾", size="sm")
                             btn_delete_body_preset = gr.Button("🗑️", size="sm")
@@ -277,11 +277,12 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                             scale=3
                         )
                     with gr.Row():
+                        _styles_choices = get_style_choices()
                         dd_styles_gen = gr.Dropdown(
                             label="Styles",
-                            choices=get_style_choices(),
+                            choices=_styles_choices,
                             multiselect=True,
-                            value=gen_config.get("active_styles", []),
+                            value=[s for s in gen_config.get("active_styles", []) if s in _styles_choices],
                             scale=1
                         )
                         btn_refresh_styles_gen = gr.Button("🔄", scale=0, min_width=40)
@@ -453,8 +454,6 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                 btn_cancel_delete_set = gr.Button("❌ Cancel", scale=1)
             
             refresh_trigger = gr.State(0)
-            zoom_val = gr.State(400)
-            zoom_slider.change(fn=lambda x: x, inputs=[zoom_slider], outputs=[zoom_val]).then(inc_trigger, inputs=[refresh_trigger], outputs=[refresh_trigger])
             
 
             btn_remove_bg.click(
@@ -697,7 +696,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                 outputs=[num_cn_res]
             )
 
-            @gr.render(inputs=[dd_sets, display_mode, zoom_val, refresh_trigger])
+            @gr.render(inputs=[dd_sets, display_mode, zoom_slider, refresh_trigger])
             def render_set(set_name, mode, zoom, trigger):
                 if not set_name: return
                 set_data = load_set(set_name)
@@ -1482,9 +1481,9 @@ with gr.Blocks(title="HaremBatch UI") as ui:
     # Wire body presets
     btn_save_body_preset.click(
         fn=save_body_preset,
-        inputs=[txt_body_preset_name, dd_body_main],
+        inputs=[txt_body_preset_save_as, dd_body_main],
         outputs=[status_box, dd_body_preset]
-    )
+    ).then(lambda: "", outputs=[txt_body_preset_save_as]) # Clear name after save
     
     dd_body_preset.change(
         fn=load_body_preset,
@@ -1694,7 +1693,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
             gen_cfg.get("active_outfits", gr.update()),
             gen_cfg.get("active_morphs", gr.update()),
             gen_cfg.get("active_body_parts", gr.update()),
-            gen_cfg.get("active_styles", gr.update()),
+            [s for s in gen_cfg.get("active_styles", []) if s in get_style_choices()] if "active_styles" in gen_cfg else gr.update(),
             set_data.get("set_prompt", gr.update()),
             set_data.get("set_negative", gr.update()),
             "\n".join(set_data.get("characters", [])),
