@@ -1,0 +1,161 @@
+{
+  "name": "2B",
+  "positive": "<lora:2bE2kPP:0.8> \n1girl, 2b, nier automata, yorha, android, ",
+  "negative": "",
+  "outfits": {
+    "virtually_naked": {
+      "positive": "nude, black blindfold, hairband, -\"blue eyes\"",
+      "negative": ""
+    },
+    "fully_naked": {
+      "positive": "nude, naked, fully nude",
+      "negative": "black blindfold, hairband"
+    },
+    "topless": {
+      "positive": "topless, black skirt, black thighhighs, black gloves, black blindfold, hairband, -\"blue eyes\"",
+      "negative": "eyes"
+    },
+    "bottomless": {
+      "positive": "bottomless, black leotard, black gloves, black blindfold, hairband, -\"blue eyes\"",
+      "negative": "eyes"
+    },
+    "fully_clothed": {
+      "positive": "black blindfold, hairband, black dress, juliet sleeves, puffy sleeves, black gloves, clothing cutout, cleavage cutout, black skirt, high-waist skirt, white leotard, black thighhighs, high heels, -\"blue eyes\"",
+      "negative": "eyes"
+    },
+    "full_underwear": {
+      "positive": "white leotard, black thighhighs, black blindfold, hairband",
+      "negative": "eyes"
+    },
+    "panties_only": {
+      "positive": "white panties, black blindfold, hairband, -\"blue eyes\"",
+      "negative": "eyes"
+    },
+    "bra_only": {
+      "positive": "white bra, black blindfold, hairband, -\"blue eyes\"",
+      "negative": "eyes"
+    },
+    "swimsuit": {
+      "positive": "black one-piece swimsuit, black blindfold, hairband, -\"blue eyes\"",
+      "negative": "eyes"
+    },
+    "work": {
+      "positive": "black blindfold, hairband, black dress, juliet sleeves, puffy sleeves, black gloves, clothing cutout, cleavage cutout, black skirt, high-waist skirt, white leotard, black thighhighs, high heels, -\"blue eyes\"",
+      "negative": "eyes"
+    }
+  },
+  "morphs": {
+    "transformation": {
+      "positive": "",
+      "negative": ""
+    },
+    "futa": {
+      "positive": "1futa, -\"1girl\", futanari, penis, intersex",
+      "negative": ""
+    },
+    "full_futa": {
+      "positive": "1futa, -\"1girl\", futanari, penis, intersex, pussy, balls",
+      "negative": ""
+    },
+    "pregnant": {
+      "positive": "pregnant, large belly",
+      "negative": ""
+    },
+    "male": {
+      "positive": "1boy, -\"1girl\", -\"pussy\", male focus",
+      "negative": ""
+    },
+    "female": {
+      "positive": "1girl",
+      "negative": ""
+    },
+    "trap": {
+      "positive": "trap, crossdressing, feminine male, -\"1girl\"",
+      "negative": ""
+    }
+  },
+  "body": {
+    "skin_color": {
+      "positive": "pale skin",
+      "negative": ""
+    },
+    "eyes": {
+      "positive": "blue eyes",
+      "negative": ""
+    },
+    "head": {
+      "positive": "mole under mouth",
+      "negative": ""
+    },
+    "hair_length": {
+      "positive": "short hair",
+      "negative": ""
+    },
+    "hair_color": {
+      "positive": "white hair",
+      "negative": ""
+    },
+    "breast": {
+      "positive": "large breasts",
+      "negative": ""
+    },
+    "nipples": {
+      "positive": "pink nipples",
+      "negative": ""
+    },
+    "abdomen": {
+      "positive": "slim waist, toned, navel",
+      "negative": ""
+    },
+    "back": {
+      "positive": "",
+      "negative": ""
+    },
+    "ass": {
+      "positive": "large ass, bubble butt",
+      "negative": ""
+    },
+    "pussy": {
+      "positive": "pussy, shaved pussy",
+      "negative": ""
+    },
+    "anus": {
+      "positive": "anus",
+      "negative": ""
+    },
+    "penis": {
+      "positive": "",
+      "negative": ""
+    },
+    "legs": {
+      "positive": "thick thighs, long legs",
+      "negative": ""
+    },
+    "feet": {
+      "positive": "",
+      "negative": ""
+    },
+    "hands_nails": {
+      "positive": "slender fingers",
+      "negative": ""
+    },
+    "armpits": {
+      "positive": "armpits, smooth armpits",
+      "negative": ""
+    },
+    "tattoos": {
+      "positive": "",
+      "negative": ""
+    },
+    "jewelry": {
+      "positive": "",
+      "negative": ""
+    }
+  },
+  "loras": [
+    "https://civitai.com/models/64738/nierautomata-yorha-lite-sd-15pdxlillustrious"
+  ],
+  "active": true,
+  "height_guide": "tall",
+  "model_category": "Illustrious"
+}

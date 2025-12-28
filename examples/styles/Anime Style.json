@@ -1,0 +1,7 @@
+{
+    "name": "Anime Style",
+    "positive": "anime, anime style, cel shading, vibrant colors, clean lines, anime screencap",
+    "negative": "realistic, photorealistic, 3d render, western art",
+    "loras": [],
+    "model_category": "Illustrious"
+}

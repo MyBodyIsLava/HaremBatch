@@ -1,0 +1,161 @@
+{
+  "name": "Ram",
+  "positive": "<lora:ReZero_Ram_IlluXL:0.8> <lora:ReZero_Rem_IlluXL:0.8> \n1girl, ram (re:zero), ",
+  "negative": "",
+  "outfits": {
+    "virtually_naked": {
+      "positive": "nude, head wreath, frilled collar, detached collar, neck ribbon, black sleeves,",
+      "negative": ""
+    },
+    "fully_naked": {
+      "positive": "nude, naked, fully nude",
+      "negative": ""
+    },
+    "topless": {
+      "positive": "topless, medium skirt, frilled skirt, black skirt, white pantyhose, head wreath",
+      "negative": ""
+    },
+    "bottomless": {
+      "positive": "bottomless, frilled collar, detached collar, neck ribbon, black sleeves, head wreath",
+      "negative": ""
+    },
+    "fully_clothed": {
+      "positive": "head wreath, frilled collar, detached collar, neck ribbon, black ribbon, black dress, underbust, frilled sleeves, black sleeves, waist apron, white apron, medium skirt, frilled skirt, black skirt, white pantyhose",
+      "negative": ""
+    },
+    "full_underwear": {
+      "positive": "white bra, white panties",
+      "negative": ""
+    },
+    "panties_only": {
+      "positive": "white panties",
+      "negative": ""
+    },
+    "bra_only": {
+      "positive": "white bra",
+      "negative": ""
+    },
+    "swimsuit": {
+      "positive": "school swimsuit",
+      "negative": ""
+    },
+    "work": {
+      "positive": "head wreath, frilled collar, detached collar, neck ribbon, black ribbon, black dress, underbust, frilled sleeves, black sleeves, waist apron, white apron, medium skirt, frilled skirt, black skirt, white pantyhose",
+      "negative": ""
+    }
+  },
+  "morphs": {
+    "transformation": {
+      "positive": "single horn",
+      "negative": ""
+    },
+    "futa": {
+      "positive": "1futa, -\"1girl\", futanari, penis, intersex",
+      "negative": ""
+    },
+    "full_futa": {
+      "positive": "1futa, -\"1girl\", futanari, penis, intersex, pussy, balls",
+      "negative": ""
+    },
+    "pregnant": {
+      "positive": "pregnant",
+      "negative": ""
+    },
+    "male": {
+      "positive": "1boy, -\"1girl\", -\"pussy\", male focus",
+      "negative": ""
+    },
+    "female": {
+      "positive": "1girl",
+      "negative": ""
+    },
+    "trap": {
+      "positive": "trap, crossdressing, feminine male, -\"1girl\"",
+      "negative": ""
+    }
+  },
+  "body": {
+    "skin_color": {
+      "positive": "fair skin",
+      "negative": ""
+    },
+    "eyes": {
+      "positive": "pink eyes",
+      "negative": ""
+    },
+    "head": {
+      "positive": "hair over one eye, blunt bangs, short hair, dot nose, x hair ornament, hair ribbon, purple ribbon",
+      "negative": ""
+    },
+    "hair_length": {
+      "positive": "short hair",
+      "negative": ""
+    },
+    "hair_color": {
+      "positive": "pink hair",
+      "negative": ""
+    },
+    "breast": {
+      "positive": "small breasts",
+      "negative": ""
+    },
+    "nipples": {
+      "positive": "pink nipples",
+      "negative": ""
+    },
+    "abdomen": {
+      "positive": "slim waist, navel",
+      "negative": ""
+    },
+    "back": {
+      "positive": "",
+      "negative": ""
+    },
+    "ass": {
+      "positive": "small ass",
+      "negative": ""
+    },
+    "pussy": {
+      "positive": "pussy",
+      "negative": ""
+    },
+    "anus": {
+      "positive": "anus",
+      "negative": ""
+    },
+    "penis": {
+      "positive": "",
+      "negative": ""
+    },
+    "legs": {
+      "positive": "slender legs",
+      "negative": ""
+    },
+    "feet": {
+      "positive": "",
+      "negative": ""
+    },
+    "hands_nails": {
+      "positive": "slender fingers",
+      "negative": ""
+    },
+    "armpits": {
+      "positive": "armpits",
+      "negative": ""
+    },
+    "tattoos": {
+      "positive": "",
+      "negative": ""
+    },
+    "jewelry": {
+      "positive": "",
+      "negative": ""
+    }
+  },
+  "loras": [
+    "https://civitai.com/models/1634464?modelVersionId=1850068"
+  ],
+  "active": true,
+  "height_guide": "average",
+  "model_category": "Illustrious"
+}

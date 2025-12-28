@@ -1,0 +1,7 @@
+{
+    "name": "Manga Style",
+    "positive": "manga, monochrome, greyscale, screentone, halftone, comic, lineart, ink drawing",
+    "negative": "color, colorful, painted, 3d",
+    "loras": [],
+    "model_category": "Illustrious"
+}
