@@ -1,5 +1,9 @@
 # 🚀 HaremBatch
 
+<p align="center">
+  <img src="docs/sample_merge.png" width="800" alt="HaremBatch Sample Menu">
+</p>
+
 HaremBatch is a batch generation and management tool for Stable Diffusion, optimized for **SDXL**, **Pony**, and **Illustrious** models. It streamlines creating consistent characters, managing outfits, morphs, and styles, while organizing everything into "Sets" (image batches).
 
 > [!NOTE]

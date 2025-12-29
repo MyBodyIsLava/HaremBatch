@@ -720,77 +720,55 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                     return
                     
                 if mode == "Frieze":
-                    forge_online = find_forge()[0]
+                    forge_online, _ = find_forge()
                     with gr.Row(variant="panel", elem_id="frieze_container"):
                         for i, img in enumerate(images):
                             with gr.Column(min_width=zoom, scale=0, elem_classes=["frieze_column"]):
                                 img_path = os.path.join(get_set_path(set_name), img["filename"])
                                 gr.Image(img_path, label=img["char_name"], show_label=False, interactive=False, container=False, width=zoom)
                                 
-                                # Row 1: Order & File
                                 with gr.Row(elem_classes=["frieze_button_row"]):
-                                    btn_left = gr.Button("⬅️", size="sm", interactive=(i > 0))
-                                    btn_right = gr.Button("➡️", size="sm", interactive=(i < len(images) - 1))
-                                    btn_flip = gr.Button("↔️", size="sm")
+                                    # Stable handlers using closures to capture i and img_path exactly
+                                    def move_l(t, idx=i): move_image_left(set_name, idx); return t + 1
+                                    def move_r(t, idx=i): move_image_right(set_name, idx); return t + 1
+                                    def flip_h(t, idx=i): msg = flip_image_wrapper(set_name, idx); return t + 1, msg
+                                    def refresh_h(t, idx=i):
+                                        gen = regenerate_set_image(set_name, idx)
+                                        msg = ""
+                                        for res in gen:
+                                            if isinstance(res, tuple): msg = res[1]
+                                            else: msg = res
+                                        return t + 1, msg
+                                    
+                                    gr.Button("⬅️", size="sm", interactive=(i > 0)).click(fn=move_l, inputs=[refresh_trigger], outputs=[refresh_trigger])
+                                    gr.Button("➡️", size="sm", interactive=(i < len(images) - 1)).click(fn=move_r, inputs=[refresh_trigger], outputs=[refresh_trigger])
+                                    gr.Button("↔️", size="sm").click(fn=flip_h, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
+                                    
                                     btn_rep = gr.UploadButton("📂", size="sm", file_types=["image"])
-
-                                # Row 2: Tools & Save
-                                with gr.Row(elem_classes=["frieze_button_row"]):
-                                    btn_refresh = gr.Button("🔄", size="sm", interactive=forge_online)
-                                    btn_nudge = gr.Button("🪄", size="sm", interactive=forge_online)
-                                    btn_ab = gr.Button("⚖️", size="sm", interactive=forge_online)
-                                    btn_save = gr.Button("💾", size="sm")
-
-                                # Stable handlers using closures
-                                def make_handler(func, *args):
-                                    def handler(t):
-                                        func(*args)
+                                    def upload_h(file_obj, t, idx=i):
+                                        replace_image_wrapper(set_name, idx, file_obj)
                                         return t + 1
-                                    return handler
+                                    btn_rep.upload(fn=upload_h, inputs=[btn_rep, refresh_trigger], outputs=[refresh_trigger])
 
-                                btn_left.click(fn=make_handler(move_image_left, set_name, i), inputs=[refresh_trigger], outputs=[refresh_trigger])
-                                btn_right.click(fn=make_handler(move_image_right, set_name, i), inputs=[refresh_trigger], outputs=[refresh_trigger])
-                                
-                                def flip_handler(t):
-                                    msg = flip_image_wrapper(set_name, i)
-                                    return t + 1, msg
-                                btn_flip.click(fn=flip_handler, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
-                                
-                                def refresh_img_handler(t):
-                                    # regenerate_set_image is a generator, we need to consume it
-                                    gen = regenerate_set_image(set_name, i)
-                                    msg = ""
-                                    for res in gen:
-                                        if isinstance(res, tuple): msg = res[1]
-                                        else: msg = res
-                                    return t + 1, msg
-                                btn_refresh.click(fn=refresh_img_handler, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
-                                
-                                def open_nudge_handler():
-                                    return open_nudge_ui(i)
-                                btn_nudge.click(fn=open_nudge_handler, outputs=[nudge_panel, nudge_target_index, txt_nudge_prompt, txt_nudge_negative, img_nudge_source])
-                                
-                                def start_ab_handler():
-                                    return start_ab_test(set_name, i)
-                                
-                                def run_ab_handler(similarity):
-                                    return run_ab_generation(set_name, i, similarity)
-
-                                btn_ab.click(
-                                    fn=start_ab_handler, 
-                                    outputs=[ab_panel, ab_target_index, img_ab_a, img_ab_b, status_ab]
-                                ).then(
-                                    fn=run_ab_handler,
-                                    inputs=[slider_ab_similarity],
-                                    outputs=[img_ab_b, status_ab, ab_variant_path]
-                                )
-                                
-                                def upload_handler(file_obj, t):
-                                    replace_image_wrapper(set_name, i, file_obj)
-                                    return t + 1
-                                btn_rep.upload(fn=upload_handler, inputs=[btn_rep, refresh_trigger], outputs=[refresh_trigger])
-                                
-                                btn_save.click(fn=lambda p=img_path: gr.update(value=p, visible=True), outputs=[export_file])
+                                with gr.Row(elem_classes=["frieze_button_row"]):
+                                    gr.Button("🔄", size="sm", interactive=forge_online).click(fn=refresh_h, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
+                                    
+                                    def open_nudge_h(idx=i): return open_nudge_ui(idx)
+                                    gr.Button("🪄", size="sm", interactive=forge_online).click(fn=open_nudge_h, outputs=[nudge_panel, nudge_target_index, txt_nudge_prompt, txt_nudge_negative, img_nudge_source])
+                                    
+                                    def start_ab_h(idx=i): return start_ab_test(set_name, idx)
+                                    def run_ab_h(similarity, idx=i): return run_ab_generation(set_name, idx, similarity)
+                                    
+                                    gr.Button("⚖️", size="sm", interactive=forge_online).click(
+                                        fn=start_ab_h, 
+                                        outputs=[ab_panel, ab_target_index, img_ab_a, img_ab_b, status_ab]
+                                    ).then(
+                                        fn=run_ab_h,
+                                        inputs=[slider_ab_similarity],
+                                        outputs=[img_ab_b, status_ab, ab_variant_path]
+                                    )
+                                    
+                                    gr.Button("💾", size="sm").click(fn=lambda p=img_path: gr.update(value=p, visible=True), outputs=[export_file])
                 else:
                     with gr.Row(variant="panel"):
                          gr.Gallery([os.path.join(get_set_path(set_name), img["filename"]) for img in images], columns=4)
