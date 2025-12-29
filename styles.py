@@ -36,6 +36,14 @@ def save_style(name, positive, negative, loras_text, model_category="Illustrious
     with open(path, 'w') as f:
         json.dump(style, f, indent=2)
     return f"✅ Style '{name}' saved!"
+    
+def create_new_style(name, model_category="Illustrious"):
+    """Create a new empty style."""
+    if not name or not name.strip():
+        return "❌ Please enter a name", gr.update()
+    name = name.strip()
+    save_style(name, "", "", "", model_category=model_category)
+    return f"✅ Style '{name}' created!", gr.update(choices=get_style_files(), value=name)
 
 def delete_style(name):
     """Delete a style."""

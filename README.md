@@ -217,8 +217,10 @@ A **character** contains all the information needed to generate a consistent per
 A **style** is a prompt preset that applies to ANY character. Ideal for applying an art style, lighting, or visual concept. No LoRA required but they work as well!
 
 1. Go to the **🎨 Styles** tab
-2. Click **➕ New Style**
-3. Fill in:
+2. Enter a name in the **Create New Style** field (e.g., `Manga Style`)
+3. Select the **Model Category**
+4. Click **➕ Create**
+5. Fill in the prompts:
 
 **Example: Manga Style (no LoRA required)**
 | Field | Value |

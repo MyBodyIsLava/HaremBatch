@@ -32,7 +32,8 @@ from characters import (
     set_active_characters_from_list, get_generated_presets
 )
 from styles import (
-    get_style_files, load_style, save_style, delete_style, load_style_ui
+    get_style_files, load_style, save_style, delete_style, load_style_ui,
+    create_new_style
 )
 from generation import process_batch, generate_characters_batch, regenerate_set_image, generate_variant
 from sets import list_sets, load_set, move_image, replace_image_in_set, get_set_path, merge_set_images, delete_set, remove_background_from_set, restore_background_from_set, rename_set, prepare_set_image_path, add_image_to_set
@@ -228,16 +229,17 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                             show_label=False,
                             choices=get_generated_presets() + get_preset_files(), 
                             value="All characters" if "All Characters" in get_generated_presets() else (get_generated_presets()[0] if get_generated_presets() else None),
-                            scale=10
+                            scale=10,
+                            info="Choose a character preset to load into the queue."
                         )
-                        btn_refresh_presets_main = gr.Button("🔄", scale=0, min_width=40)
+                        btn_refresh_presets_main = gr.Button("🔄", scale=0, min_width=40, tooltip="Refresh presets list")
                     
                     with gr.Row():
                         with gr.Column(scale=1):
-                            txt_set_name_main = gr.Textbox(label="Set Name (Optional)", placeholder="New Set Name")
-                            chk_add_date = gr.Checkbox(label="Add Date Prefix", value=gen_config.get("add_date_prefix", True))
-                        txt_set_prompt = gr.Textbox(label="Set Prompt (Added to all)", value=gen_config.get("set_prompt", ""), placeholder="beach background, sunset", scale=2)
-                        txt_set_negative = gr.Textbox(label="Set Negative (Added to all)", value=gen_config.get("set_negative", ""), placeholder="indoors, crowd", scale=2)
+                            txt_set_name_main = gr.Textbox(label="Set Name (Optional)", placeholder="New Set Name", info="Used for the output folder name.")
+                            chk_add_date = gr.Checkbox(label="Add Date Prefix", value=gen_config.get("add_date_prefix", True), info="YYYYMMDD_HHMM prefix.")
+                        txt_set_prompt = gr.Textbox(label="Set Prompt (Added to all)", value=gen_config.get("set_prompt", ""), placeholder="beach background, sunset", scale=2, info="Poses, scene details, lighting.")
+                        txt_set_negative = gr.Textbox(label="Set Negative (Added to all)", value=gen_config.get("set_negative", ""), placeholder="indoors, crowd", scale=2, info="Things to avoid in this batch.")
                     
                     with gr.Row():
                         dd_body_main = gr.Dropdown(
@@ -245,7 +247,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                             choices=get_body_choices(),
                             multiselect=True,
                             value=gen_config.get("active_body_parts", []),
-                            scale=4
+                            scale=4,
+                            info="Select which body parts to show."
                         )
                     with gr.Row():
                         _body_presets = get_body_presets()
@@ -254,7 +257,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                             choices=_body_presets,
                             value=None,
                             allow_custom_value=False,
-                            scale=3
+                            scale=3,
+                            info="Load a saved set of body parts."
                         )
                         txt_body_preset_save_as = gr.Textbox(label="Save As", placeholder="Full Detail", scale=2)
                         with gr.Column(scale=0, min_width=50):
@@ -267,14 +271,16 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                             choices=_outfit_choices,
                             multiselect=True,
                             value=gen_config.get("active_outfits", ["virtually_naked"] if any(c[1] == "virtually_naked" for c in _outfit_choices) else []),
-                            scale=3
+                            scale=3,
+                            info="Select outfits to generate."
                         )
                         dd_morphs_main = gr.Dropdown(
                             label="Morphs",
                             choices=get_morph_choices(),
                             multiselect=True,
                             value=gen_config.get("active_morphs", []),
-                            scale=3
+                            scale=3,
+                            info="Select body transformations."
                         )
                     with gr.Row():
                         _styles_choices = get_style_choices()
@@ -283,7 +289,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                             choices=_styles_choices,
                             multiselect=True,
                             value=[s for s in gen_config.get("active_styles", []) if s in _styles_choices],
-                            scale=1
+                            scale=1,
+                            info="Apply art styles or lighting presets."
                         )
                         btn_refresh_styles_gen = gr.Button("🔄", scale=0, min_width=40)
                     
@@ -424,19 +431,19 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                          btn_cancel_rename = gr.Button("❌ Cancel", scale=0)
 
                     with gr.Row():
-                        display_mode = gr.Radio(["Frieze", "Grid"], label="Display Mode", value="Frieze", scale=1)
-                        zoom_slider = gr.Slider(label="Zoom", minimum=100, maximum=1000, value=400, step=50, scale=2)
+                        display_mode = gr.Radio(["Frieze", "Grid"], label="Display Mode", value="Frieze", scale=1, info="Frieze: Side-by-side | Grid: Standard overview.")
+                        zoom_slider = gr.Slider(label="Zoom", minimum=100, maximum=1000, value=400, step=50, scale=2, info="Adjust preview size.")
                 
                 with gr.Column(scale=3):
                     with gr.Group():
                         gr.Markdown("**🧩 Merge Tool**")
                         with gr.Row():
-                            slider_merge_overlap = gr.Slider(label="Overlap", minimum=-100, maximum=100, value=0, step=10)
+                            slider_merge_overlap = gr.Slider(label="Overlap", minimum=-100, maximum=100, value=0, step=10, info="Horizontal spacing between images.")
                             btn_merge = gr.Button("Merge Images", variant="secondary")
                         gr.Markdown("**✂️ BG Removal**")
                         with gr.Row():
-                            slider_bg_threshold = gr.Slider(label="Threshold", minimum=0, maximum=200, value=20, step=1)
-                            cb_bg_contiguous = gr.Checkbox(label="Contiguous", value=True)
+                            slider_bg_threshold = gr.Slider(label="Threshold", minimum=0, maximum=200, value=20, step=1, info="Higher = more aggressive removal.")
+                            cb_bg_contiguous = gr.Checkbox(label="Contiguous", value=True, info="Edge-only removal.")
                         with gr.Row():
                             btn_remove_bg = gr.Button("Remove BG", size="sm")
                             btn_restore_bg = gr.Button("Restore BG", size="sm")
@@ -532,7 +539,11 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                         img_nudge_source = gr.Image(label="Source Image", type="pil", height=200)
                         btn_use_current = gr.Button("⬇️ Use Current Image")
                     with gr.Column(scale=2):
-                        slider_nudge_strength = gr.Slider(label="Denoising / Control Weight", minimum=0, maximum=1, value=0.75, step=0.05)
+                        slider_nudge_strength = gr.Slider(
+                            label="Denoising / Control Weight", 
+                            minimum=0, maximum=1, value=0.75, step=0.05,
+                            info="0 = original image (no change), 1 = completely new image"
+                        )
                         btn_exec_nudge = gr.Button("⚡ Regenerate", variant="primary")
 
             def open_nudge_ui(idx): return gr.update(visible=True), idx, "", "", None
@@ -718,17 +729,17 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                                 
                                 # Row 1: Order & File
                                 with gr.Row(elem_classes=["frieze_button_row"]):
-                                    btn_left = gr.Button("⬅️", size="sm", interactive=(i > 0))
-                                    btn_right = gr.Button("➡️", size="sm", interactive=(i < len(images) - 1))
-                                    btn_flip = gr.Button("↔️", size="sm")
-                                    btn_rep = gr.UploadButton("📂", size="sm", file_types=["image"])
+                                    btn_left = gr.Button("⬅️", size="sm", interactive=(i > 0), tooltip="Move image left")
+                                    btn_right = gr.Button("➡️", size="sm", interactive=(i < len(images) - 1), tooltip="Move image right")
+                                    btn_flip = gr.Button("↔️", size="sm", tooltip="Flip image (save as new variant)")
+                                    btn_rep = gr.UploadButton("📂", size="sm", file_types=["image"], tooltip="Replace image with local file")
 
                                 # Row 2: Tools & Save
                                 with gr.Row(elem_classes=["frieze_button_row"]):
-                                    btn_refresh = gr.Button("🔄", size="sm", interactive=forge_online)
-                                    btn_nudge = gr.Button("🪄", size="sm", interactive=forge_online)
-                                    btn_ab = gr.Button("⚖️", size="sm", interactive=forge_online)
-                                    btn_save = gr.Button("💾", size="sm")
+                                    btn_refresh = gr.Button("🔄", size="sm", interactive=forge_online, tooltip="Regenerate this image with same parameters")
+                                    btn_nudge = gr.Button("🪄", size="sm", interactive=forge_online, tooltip="Nudge: Modify prompt and regenerate")
+                                    btn_ab = gr.Button("⚖️", size="sm", interactive=forge_online, tooltip="A/B Test: Generate a variant and choose between A and B")
+                                    btn_save = gr.Button("💾", size="sm", tooltip="Export image")
 
                                 # Handlers
                                 btn_left.click(fn=move_image_left, inputs=[gr.State(set_name), gr.State(i)], outputs=[]).then(inc_trigger, inputs=[refresh_trigger], outputs=[refresh_trigger])
@@ -764,36 +775,37 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                     choices=get_character_files(),
                     value=None,
                     allow_custom_value=False,
-                    scale=3
+                    scale=3,
+                    info="Choose a character to edit."
                 )
-                btn_refresh_chars = gr.Button("🔄", scale=0, min_width=50)
-                btn_save_char_top = gr.Button("💾 Save", variant="primary", scale=1)
-                txt_rename_char = gr.Textbox(label="Rename Current", placeholder="New name here...", scale=2)
-                btn_rename_char = gr.Button("✏️ Rename", variant="secondary", scale=1)
-                txt_new_char_name = gr.Textbox(label="Create New", placeholder="Character name", scale=2)
-                dd_new_char_cat = gr.Dropdown(label="Category", choices=MODEL_CATEGORIES, value="Illustrious", scale=1)
-                btn_new_char = gr.Button("➕ Create", variant="primary", scale=1)
+                btn_refresh_chars = gr.Button("🔄", scale=0, min_width=50, tooltip="Refresh characters list")
+                btn_save_char_top = gr.Button("💾 Save", variant="primary", scale=1, tooltip="Save current character")
+                txt_rename_char = gr.Textbox(label="Rename Current", placeholder="New name here...", scale=2, info="Change the file name.")
+                btn_rename_char = gr.Button("✏️ Rename", variant="secondary", scale=1, tooltip="Rename current character file")
+                txt_new_char_name = gr.Textbox(label="Create New", placeholder="Character name", scale=2, info="Start a fresh profile.")
+                dd_new_char_cat = gr.Dropdown(label="Category", choices=MODEL_CATEGORIES, value="Illustrious", scale=1, info="Base model target.")
+                btn_new_char = gr.Button("➕ Create", variant="primary", scale=1, tooltip="Create a new character profile")
             
             with gr.Row():
                 with gr.Column(scale=1):
                     with gr.Row():
-                        txt_add_outfit = gr.Textbox(label="Add Custom Outfit (key: Name)", placeholder="maid: Maid Outfit", scale=3)
+                        txt_add_outfit = gr.Textbox(label="Add Custom Outfit (key: Name)", placeholder="maid: Maid Outfit", scale=3, info="e.g. 'maid: Maid Outfit'")
                         btn_add_outfit = gr.Button("👗 Add", scale=1)
                 with gr.Column(scale=1):
                     with gr.Row():
-                        txt_add_morph = gr.Textbox(label="Add Custom Morph (key: Name)", placeholder="cat: Cat Ears", scale=3)
+                        txt_add_morph = gr.Textbox(label="Add Custom Morph (key: Name)", placeholder="cat: Cat Ears", scale=3, info="e.g. 'cat: Cat Ears'")
                         btn_add_morph = gr.Button("🧬 Add", scale=1)
                 with gr.Column(scale=1):
                     with gr.Row():
-                        txt_add_body = gr.Textbox(label="Add Custom Body Part (key: Name)", placeholder="nails: Long Nails", scale=3)
+                        txt_add_body = gr.Textbox(label="Add Custom Body Part (key: Name)", placeholder="nails: Long Nails", scale=3, info="e.g. 'nails: Nails'")
                         btn_add_body = gr.Button("👤 Add", scale=1)
             
             gr.Markdown("### Base Prompts")
             with gr.Row():
-                txt_char_positive = gr.Textbox(label="Positive Prompt", lines=2, placeholder="1girl,...", scale=3)
-                txt_char_negative = gr.Textbox(label="Negative Prompt", lines=2, placeholder="...", scale=3)
+                txt_char_positive = gr.Textbox(label="Positive Prompt", lines=2, placeholder="1girl,...", scale=3, info="Physical traits (hair, eyes, face).")
+                txt_char_negative = gr.Textbox(label="Negative Prompt", lines=2, placeholder="...", scale=3, info="Character-specific negatives.")
             
-            txt_char_loras = gr.Textbox(label="LoRA References (Names / URLs) - [Reference Only]", lines=3, placeholder="<lora:Name:1>, http://civitai.com/...")
+            txt_char_loras = gr.Textbox(label="LoRA References (Names / URLs) - [Reference Only]", lines=3, placeholder="<lora:Name:1>, http://civitai.com/...", info="For your records (doesn't affect prompt).")
             
             with gr.Row():
                 dd_height_guide = gr.Dropdown(
@@ -916,19 +928,24 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                     choices=get_style_files(),
                     value=None,
                     allow_custom_value=False,
-                    scale=3
+                    scale=3,
+                    info="Choose a style preset to edit."
                 )
-                btn_refresh_styles = gr.Button("🔄", scale=0, min_width=50)
-                btn_save_style = gr.Button("💾 Save Style", variant="primary", scale=1)
+                btn_refresh_styles = gr.Button("🔄", scale=0, min_width=50, tooltip="Refresh styles list")
+                btn_save_style_top = gr.Button("💾 Save", variant="primary", scale=1, tooltip="Save current style")
+                txt_new_style_name = gr.Textbox(label="Create New Style", placeholder="Style Name", scale=2, info="New style preset.")
+                dd_new_style_cat = gr.Dropdown(label="Category", choices=MODEL_CATEGORIES, value="Illustrious", scale=1, info="Target model.")
+                btn_new_style = gr.Button("➕ Create", variant="primary", scale=1, tooltip="Create a new style preset")
+            
+            with gr.Row():
+                txt_style_name = gr.Textbox(label="Style Name", placeholder="Display Name", scale=2)
+                dd_style_model_category = gr.Dropdown(label="Model Category", choices=MODEL_CATEGORIES, value="Illustrious", scale=1)
+                btn_save_style = gr.Button("💾 Save Changes", variant="primary", scale=1)
                 btn_delete_style = gr.Button("🗑️ Delete", variant="stop", scale=1)
             
             with gr.Row():
-                txt_style_name = gr.Textbox(label="Style Name", placeholder="New Style Name", scale=2)
-                dd_style_model_category = gr.Dropdown(label="Model Category", choices=MODEL_CATEGORIES, value="Illustrious", scale=1)
-            
-            with gr.Row():
-                txt_style_positive = gr.Textbox(label="Positive Prompt", lines=3, placeholder="art style, lighting, etc.")
-                txt_style_negative = gr.Textbox(label="Negative Prompt", lines=3, placeholder="...")
+                txt_style_positive = gr.Textbox(label="Positive Prompt", lines=3, placeholder="art style, lighting, etc.", info="Aesthetic, artist, lighting tags.")
+                txt_style_negative = gr.Textbox(label="Negative Prompt", lines=3, placeholder="...", info="Tags to avoid for this style.")
             
             txt_style_loras = gr.TextArea(label="LoRA References (Names / URLs) - [Reference Only]", lines=3, placeholder="name:weight or <lora:name:weight>")
             
@@ -943,18 +960,19 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                     dd_preset = gr.Dropdown(
                         label="Load Preset",
                         choices=get_preset_files(),  # Only user-saved presets here, not generated ones
-                        allow_custom_value=False
+                        allow_custom_value=False,
+                        info="Load a previously saved character queue."
                     )
-                    btn_load_preset = gr.Button("📂 Load Preset", variant="primary")
+                    btn_load_preset = gr.Button("📂 Load Preset", variant="primary", tooltip="Load the selected character preset")
                     
                     with gr.Row():
-                        btn_activate_all = gr.Button("✅ Activate All", variant="secondary")
-                        btn_deactivate_all = gr.Button("❌ Deactivate All", variant="secondary")
+                        btn_activate_all = gr.Button("✅ Activate All", variant="secondary", tooltip="Check all available characters")
+                        btn_deactivate_all = gr.Button("❌ Deactivate All", variant="secondary", tooltip="Uncheck all available characters")
                     
                     with gr.Row():
-                        txt_preset_name = gr.Textbox(label="Preset Name", placeholder="pokemon_girls", scale=2)
-                        btn_save_preset = gr.Button("💾 Save", variant="secondary")
-                        btn_delete_preset = gr.Button("🗑️ Delete Preset", variant="stop")
+                        txt_preset_name = gr.Textbox(label="Preset Name", placeholder="pokemon_girls", scale=2, info="Name for the current queue.")
+                        btn_save_preset = gr.Button("💾 Save", variant="secondary", tooltip="Save current checked characters as a preset")
+                        btn_delete_preset = gr.Button("🗑️ Delete Preset", variant="stop", tooltip="Delete the selected preset file")
                     
                     with gr.Row():
                          btn_new_empty_preset = gr.Button("🆕 New Empty Preset", size="sm")
@@ -976,7 +994,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                         value="\n".join(_session_names) if _session_names else "\n".join([c["name"] for c in get_active_characters()]),
                         interactive=True, 
                         lines=10,
-                        placeholder="Alice\nBob\nCharlie"
+                        placeholder="Alice\nBob\nCharlie",
+                        info="Final generation queue. Order matters!"
                     )
                     
                     gr.Markdown("#### 🔳 Quick Select")
@@ -1000,11 +1019,11 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                         dd_model = gr.Dropdown(label="Model", choices=get_models_list(), value=gen_config["model"], allow_custom_value=True)
                         dd_vae = gr.Dropdown(label="VAE", choices=get_vae_list(), value=gen_config["vae"], allow_custom_value=True)
                         dd_sampler = gr.Dropdown(label="Sampler", choices=get_samplers_list(), value=gen_config["sampler"], allow_custom_value=True)
-                        btn_refresh_lists = gr.Button("🔄 Refresh", scale=0)
+                        btn_refresh_lists = gr.Button("🔄 Refresh", scale=0, tooltip="Refresh models, VAEs, and samplers from Forge")
                     
                     with gr.Row():
-                        slider_cfg = gr.Slider(label="CFG Scale", minimum=1, maximum=20, value=gen_config["cfg_scale"], step=0.5)
-                        slider_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=gen_config["steps"], step=1)
+                        slider_cfg = gr.Slider(label="CFG Scale", minimum=1, maximum=20, value=gen_config["cfg_scale"], step=0.5, info="Lower = more creative | Higher = closer to prompt")
+                        slider_steps = gr.Slider(label="Steps", minimum=1, maximum=100, value=gen_config["steps"], step=1, info="Refinement iterations.")
                     
                     gr.Markdown("### 📐 Image Size (SDXL optimized)")
                     with gr.Row():
@@ -1017,8 +1036,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                         num_height = gr.Number(label="Height", value=gen_config["height"], precision=0)
                     
                     gr.Markdown("### 📝 Common Prompts")
-                    txt_common_prompt = gr.Textbox(label="Common Prompt", value=gen_config["common_prompt"], lines=2)
-                    txt_common_neg = gr.Textbox(label="Common Negative", value=gen_config["common_negative"], lines=2)
+                    txt_common_prompt = gr.Textbox(label="Common Prompt", value=gen_config["common_prompt"], lines=2, info="Global quality tags added to ALL images.")
+                    txt_common_neg = gr.Textbox(label="Common Negative", value=gen_config["common_negative"], lines=2, info="Global negatives (worst quality, etc.)")
                     
                     gr.Markdown("### 🏷️ Tag Suggestions")
                     chk_show_suggestions = gr.Checkbox(
@@ -1045,7 +1064,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                     txt_manage_body = gr.Textbox(label="Body", value=get_body_names_text(), lines=10)
             
             with gr.Row():
-                btn_save_settings = gr.Button("💾 Save All Settings", variant="primary")
+                btn_save_settings = gr.Button("💾 Save All Settings", variant="primary", tooltip="Save generation settings and mappings")
                 settings_status = gr.Textbox(label="Status", interactive=False, scale=2)
         
         with gr.Tab("Forge Server"):
@@ -1053,7 +1072,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
             
             with gr.Row():
                 forge_status_server = gr.Textbox(label="Forge Status", interactive=False, value="🔴 OFFLINE", scale=3)
-                btn_refresh_server = gr.Button("🔄", scale=0, min_width=50)
+                btn_refresh_server = gr.Button("🔄", scale=0, min_width=50, tooltip="Check Forge connection status")
             
             txt_api_url = gr.Textbox(
                 label="API URL (will also scan common ports)",
@@ -1070,7 +1089,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
             txt_extra_args = gr.Textbox(
                 label="Additional arguments",
                 value=config["extra_args"],
-                placeholder="--api --listen --nowebui"
+                placeholder="--api --listen --nowebui",
+                info="CLI flags passed to Forge on launch."
             )
 
             
@@ -1080,9 +1100,9 @@ with gr.Blocks(title="HaremBatch UI") as ui:
             """)
             
             with gr.Row():
-                btn_launch = gr.Button("🚀 LAUNCH FORGE", variant="primary")
-                btn_kill = gr.Button("💀 KILL ALL FORGE", variant="stop")
-                btn_save = gr.Button("💾 Save Settings", variant="secondary")
+                btn_launch = gr.Button("🚀 LAUNCH FORGE", variant="primary", tooltip="Start Forge using the path and arguments below")
+                btn_kill = gr.Button("💀 KILL ALL FORGE", variant="stop", tooltip="Force stop all Forge processes")
+                btn_save = gr.Button("💾 Save Settings", variant="secondary", tooltip="Save server connection and launcher settings")
             
             server_status = gr.Textbox(label="Server Status", interactive=False)
 
@@ -1299,7 +1319,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         dd_outfits_main, dd_morphs_main, dd_body_main, dd_styles_gen,
         dd_outfits_main, dd_morphs_main, dd_body_main, dd_styles_gen,
         chk_ignore_height, chk_show_suggestions, dd_cn_module, dd_cn_model, dd_cn_control_mode,
-        chk_cn_pixel_perfect, num_cn_res, slider_cn_start, slider_cn_end
+        chk_cn_pixel_perfect, num_cn_res, slider_cn_start, slider_cn_end,
+        dd_merge_format, chk_add_date
     ]:
         comp.change(fn=save_full_session, inputs=session_inputs, outputs=[])
         
@@ -1468,6 +1489,30 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         inputs=[txt_style_name],
         outputs=[dd_style, dd_styles_gen]
     )
+
+    btn_save_style_top.click(
+        fn=save_style,
+        inputs=[txt_style_name, txt_style_positive, txt_style_negative, txt_style_loras, dd_style_model_category],
+        outputs=[style_status]
+    ).then(
+        fn=lambda name: (gr.update(choices=get_style_files(), value=name), gr.update(choices=get_style_files())),
+        inputs=[txt_style_name],
+        outputs=[dd_style, dd_styles_gen]
+    )
+
+    btn_new_style.click(
+        fn=create_new_style,
+        inputs=[txt_new_style_name, dd_new_style_cat],
+        outputs=[style_status, dd_style]
+    ).then(
+        fn=load_style_ui,
+        inputs=[dd_style],
+        outputs=[txt_style_positive, txt_style_negative, txt_style_loras, dd_style_model_category]
+    ).then(
+        fn=lambda name: name,
+        inputs=[dd_style],
+        outputs=[txt_style_name]
+    ).then(lambda: "", outputs=[txt_new_style_name])
 
     btn_delete_style.click(
         fn=delete_style,
