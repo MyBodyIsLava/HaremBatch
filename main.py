@@ -741,25 +741,55 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                                     btn_ab = gr.Button("⚖️", size="sm", interactive=forge_online)
                                     btn_save = gr.Button("💾", size="sm")
 
-                                # Handlers
-                                btn_left.click(fn=move_image_left, inputs=[gr.State(set_name), gr.State(i)], outputs=[]).then(inc_trigger, inputs=[refresh_trigger], outputs=[refresh_trigger])
-                                btn_right.click(fn=move_image_right, inputs=[gr.State(set_name), gr.State(i)], outputs=[]).then(inc_trigger, inputs=[refresh_trigger], outputs=[refresh_trigger])
-                                btn_flip.click(fn=flip_image_wrapper, inputs=[gr.State(set_name), gr.State(i)], outputs=[status_box]).then(inc_trigger, inputs=[refresh_trigger], outputs=[refresh_trigger])
+                                # Stable handlers using closures
+                                def make_handler(func, *args):
+                                    def handler(t):
+                                        func(*args)
+                                        return t + 1
+                                    return handler
+
+                                btn_left.click(fn=make_handler(move_image_left, set_name, i), inputs=[refresh_trigger], outputs=[refresh_trigger])
+                                btn_right.click(fn=make_handler(move_image_right, set_name, i), inputs=[refresh_trigger], outputs=[refresh_trigger])
                                 
-                                btn_refresh.click(fn=regenerate_set_image, inputs=[gr.State(set_name), gr.State(i)], outputs=[status_box]).then(inc_trigger, inputs=[refresh_trigger], outputs=[refresh_trigger])
-                                btn_nudge.click(fn=open_nudge_ui, inputs=[gr.State(i)], outputs=[nudge_panel, nudge_target_index, txt_nudge_prompt, txt_nudge_negative, img_nudge_source])
+                                def flip_handler(t):
+                                    msg = flip_image_wrapper(set_name, i)
+                                    return t + 1, msg
+                                btn_flip.click(fn=flip_handler, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
                                 
+                                def refresh_img_handler(t):
+                                    # regenerate_set_image is a generator, we need to consume it
+                                    gen = regenerate_set_image(set_name, i)
+                                    msg = ""
+                                    for res in gen:
+                                        if isinstance(res, tuple): msg = res[1]
+                                        else: msg = res
+                                    return t + 1, msg
+                                btn_refresh.click(fn=refresh_img_handler, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
+                                
+                                def open_nudge_handler():
+                                    return open_nudge_ui(i)
+                                btn_nudge.click(fn=open_nudge_handler, outputs=[nudge_panel, nudge_target_index, txt_nudge_prompt, txt_nudge_negative, img_nudge_source])
+                                
+                                def start_ab_handler():
+                                    return start_ab_test(set_name, i)
+                                
+                                def run_ab_handler(similarity):
+                                    return run_ab_generation(set_name, i, similarity)
+
                                 btn_ab.click(
-                                    fn=start_ab_test, 
-                                    inputs=[gr.State(set_name), gr.State(i)], 
+                                    fn=start_ab_handler, 
                                     outputs=[ab_panel, ab_target_index, img_ab_a, img_ab_b, status_ab]
                                 ).then(
-                                    fn=run_ab_generation,
-                                    inputs=[gr.State(set_name), gr.State(i), slider_ab_similarity],
+                                    fn=run_ab_handler,
+                                    inputs=[slider_ab_similarity],
                                     outputs=[img_ab_b, status_ab, ab_variant_path]
                                 )
                                 
-                                btn_rep.upload(fn=replace_image_wrapper, inputs=[gr.State(set_name), gr.State(i), btn_rep], outputs=[]).then(inc_trigger, inputs=[refresh_trigger], outputs=[refresh_trigger])
+                                def upload_handler(file_obj, t):
+                                    replace_image_wrapper(set_name, i, file_obj)
+                                    return t + 1
+                                btn_rep.upload(fn=upload_handler, inputs=[btn_rep, refresh_trigger], outputs=[refresh_trigger])
+                                
                                 btn_save.click(fn=lambda p=img_path: gr.update(value=p, visible=True), outputs=[export_file])
                 else:
                     with gr.Row(variant="panel"):

@@ -20,7 +20,7 @@ HaremBatch is a batch generation and management tool for Stable Diffusion, optim
 | **Session Recovery** | Automatically saves and restores your last generation settings |
 
 > [!WARNING]
-> **HaremBatch does NOT download or install LoRAs automatically.** You must manually download LoRAs from sites like [Civitai](https://civitai.com) and place them in your Forge `models/Lora/` folder before using them in character or style prompts. The exemple use some LoRAs from the [ReZero](https://civitai.com/models/1634464?modelVersionId=1850068) series.
+> **HaremBatch does NOT download or install LoRAs automatically.** You must manually download LoRAs from sites like [Civitai](https://civitai.com) and place them in your Forge `models/Lora/` folder before using them in character or style prompts. The examples use some LoRAs from the [ReZero](https://civitai.com/models/1634464?modelVersionId=1850068) series.
 
 ---
 
@@ -311,7 +311,7 @@ Before generating, you need to configure some important settings. Go to the **�
 The **Model** dropdown lists all checkpoints available in Forge. This requires Forge to be connected.
 
 - Select a model matching your character's category (Illustrious, Pony, or SDXL)
-- If model and character category don't match, you'll see a warning
+- If the model and character category don't match, you'll see a warning
 
 ### Core Settings
 
@@ -328,7 +328,7 @@ HaremBatch handles prompts at different levels to separate character details fro
 
 | Prompt Level | Set In | Purpose |
 |--------------|--------|---------|
-| **Global (Common)** | ⚙️ Forge Server tab | Quality tags and universal negatives applied to ALL generations. |
+| **Global (Common)** | ⚙️ Forge Server tab | Quality tags and universal negatives applied to ALL generations and sets. |
 | **Set (Batch)** | 🚀 Generation tab | Poses, actions, and scene details specific to the current batch. |
 | **Character/Style** | Respective Editor tabs | Core identity and art style definitions. |
 
@@ -462,9 +462,9 @@ To maintain consistency across your character library, follow these standard def
 ### 🤖 Model Category
 | Category | Description |
 |:---|:---|
-| `Illustrious` | For Illustrious/NoobAI based models (Standard) |
-| `Pony` | For Pony Diffusion V6 based models |
-| `SDXL` | For standard SDXL 1.0 based models |
+| `Illustrious` | For Illustrious/NoobAI-based models (Standard) |
+| `Pony` | For Pony Diffusion V6-based models |
+| `SDXL` | For standard SDXL 1.0-based models |
 
 ---
 
@@ -491,7 +491,7 @@ To maintain consistency across your character library, follow these standard def
 | `male` | male | `1boy, -"1girl", -"pussy", male focus`. Gender swap for females. |
 | `futa` | futa | `1futa, -"1girl", futanari, penis`. Female with penis. |
 | `full_futa` | full futa | `1futa, -"1girl", futanari, penis, pussy, balls`. Futa with balls and pussy. |
-| `trap` | trap | `trap, crossdressing, feminine male, -"1girl"`. Androgynous male form with penis|
+| `trap` | trap | `trap, crossdressing, feminine male, -"1girl"`. Androgynous male form with penis. |
 | `pregnant` | pregnant | `pregnant, large belly`. Pregnancy morph. |
 | `transformation` | transformation | `single horn, glowing eyes` or any character-specific change. |
 
@@ -509,7 +509,7 @@ To maintain consistency across your character library, follow these standard def
 | **Special** | `hands_nails`, `armpits`, `tattoos`, `jewelry` | `painted nails`, `navel piercing`, `tribal tattoo` |
 
 > [!IMPORTANT]
-> **Canon body type rule:** Body parts should describe the character's **canonical** form.
+> **Canonical body type rule:** Body parts should describe the character's **canonical** form.
 > - **Female characters:** Leave `penis` empty. Fill `pussy` if needed.
 > - **Male characters:** Leave `pussy` empty. Fill `penis` if needed.
 > - Morphs (`futa`, `male`, `trap`) will add the appropriate anatomy when applied.
@@ -644,7 +644,7 @@ When using `controlnet` mode, additional options appear:
 
 ### Recommended ControlNet Models
 
-For best results with Illustrious/SDXL based models, use these specific ControlNet model:
+For best results with Illustrious/SDXL-based models, use these specific ControlNet models:
 - **[Illustrious XL ControlNet OpenPose](https://civitai.com/models/1359846/illustrious-xl-controlnet-openpose)**
 
 > [!TIP]
@@ -707,7 +707,7 @@ For best results with Illustrious/SDXL based models, use these specific ControlN
 > - All expected tags are present
 > - No conflicting tags appear (e.g., both `1girl` and `1boy`)
 > - LoRA syntax is correct (`<lora:Name:0.8>`)
-> - No missing or extra tags
+> - Check for missing or extra tags
 
 ---
 
