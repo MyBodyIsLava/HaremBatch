@@ -34,7 +34,7 @@ HaremBatch is a batch generation and management tool for Stable Diffusion, optim
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/HaremAnon/HaremBatch.git
+git clone https://github.com/MyBodyIsLava/HaremBatch.git
 cd HaremBatch
 ```
 

@@ -34,8 +34,8 @@ def setup_examples():
     for target, source in mapping.items():
         if os.path.exists(source):
             if os.path.isdir(target):
-                # Only copy if empty
-                if not os.listdir(target):
+                # Only copy if empty (ignoring .gitkeep)
+                if not [f for f in os.listdir(target) if not f.startswith('.')]:
                     print(f"📦 Seeding {target} from examples...")
                     for item in os.listdir(source):
                         s = os.path.join(source, item)
