@@ -223,7 +223,7 @@ def merge_set_images(set_name, overlap=0, fmt="webp"):
             
         timestamp = int(time.time())
         ext = "webp" if fmt == "webp" else "png"
-        filename = f"00_merged_{timestamp}.{ext}"
+        filename = f"00_HaremBatch_{timestamp}.{ext}"
         save_path = os.path.join(set_path, filename)
         
         if fmt == "webp":
