@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.png" width="300" alt="HaremBatch Logo">
+</p>
+
 # 🚀 HaremBatch
 
 <p align="center">
