@@ -71,7 +71,8 @@ def load_preset_with_name(name):
     safe_name = name if name not in generated and name != "All Characters" else ""
     # active is the list of names
     order_text = "\n".join(active)
-    return msg, active, safe_name, order_text
+    # Update choices to ensure new characters don't crash the UI
+    return msg, gr.update(choices=get_character_files(), value=active), safe_name, order_text
 
 def inc_trigger(curr):
     return curr + 1
@@ -560,14 +561,17 @@ with gr.Blocks(title="HaremBatch UI") as ui:
             btn_use_current.click(fn=use_current_image, inputs=[nudge_target_index, dd_sets], outputs=[img_nudge_source])
 
             def do_nudge(s_name, idx, p, n, s, strength):
-                 if idx < 0: return "❌ No target selected"
+                 if idx < 0: 
+                     yield "❌ No target selected"
+                     return
                  params = {"prompt": p, "negative": n, "source_image": s, "strength": strength}
                  gen = regenerate_set_image(s_name, idx, params)
-                 msg = ""
                  for res in gen:
-                     if isinstance(res, tuple): msg = res[1]
-                     else: msg = res
-                 return msg
+                     # res is (None, msg) based on recent change
+                     if isinstance(res, tuple): 
+                         yield res[1]
+                     else: 
+                         yield res
 
             btn_exec_nudge.click(
                 fn=do_nudge,
@@ -1178,6 +1182,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         outputs=[status_box, cbg_active_chars, txt_preset_name, txt_active_order]
     ).then(
         fn=get_active_summary,
+        inputs=[txt_active_order],
         outputs=[txt_active_main]
     )
     
@@ -1250,8 +1255,25 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         outputs=[dd_model, dd_vae, dd_sampler]
     )
     
+    def save_gen_config_ui_wrapper(
+        m, v, cfg, w, h, stp, smp, cp, cn, 
+        o_txt, m_txt, b_txt, 
+        show_s, cn_mode, cn_pp, cn_res, cn_gs, cn_ge, m_fmt
+    ):
+        """Wrapper to handle positional arguments from UI and pass to save_gen_config."""
+        config_dict = {
+            "model": m, "vae": v, "cfg_scale": cfg, "width": w, "height": h, "steps": stp, "sampler": smp,
+            "common_prompt": cp, "common_negative": cn,
+            "show_suggestions": show_s, 
+            "controlnet_control_mode": cn_mode, "controlnet_pixel_perfect": cn_pp, 
+            "controlnet_processor_res": cn_res, "controlnet_guidance_start": cn_gs, "controlnet_guidance_end": cn_ge,
+            "merge_format": m_fmt
+        }
+        # Pass text blocks as kwargs
+        return save_gen_config(config_dict=config_dict, outfits_text=o_txt, morphs_text=m_txt, body_text=b_txt)
+
     btn_save_settings.click(
-        fn=save_gen_config,
+        fn=save_gen_config_ui_wrapper,
         inputs=[
             dd_model, dd_vae, slider_cfg, num_width, num_height, slider_steps, dd_sampler, 
             txt_common_prompt, txt_common_neg, 
@@ -1289,22 +1311,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         stable_t = stabilize_image(img_t, "last_template")
         stable_p = stabilize_image(img_p, "last_pose")
 
-        save_gen_config(
-            model=m, vae=v, cfg_scale=cfg, width=w, height=h, steps=stp, sampler=smp,
-            common_prompt=cp, common_negative=cn,
-            active_outfits=outfits, active_morphs=morphs, active_body_parts=body, active_styles=styles,
-            set_prompt=sp, set_negative=sn,
-            active_character_names=[line.strip() for line in order.split('\n') if line.strip()],
-            generation_mode=mode,
-            img2img_template=stable_t, img2img_denoising=dens, img2img_ignore_height_guide=ign_h,
-            controlnet_pose=stable_p, controlnet_module=cn_mod, controlnet_model=cn_model, controlnet_weight=cn_w, controlnet_control_mode=cn_mode,
-            controlnet_pixel_perfect=cn_pp, controlnet_processor_res=cn_res, 
-            controlnet_guidance_start=cn_guid_start, controlnet_guidance_end=cn_guid_end,
-            merge_format=m_fmt,
-            show_suggestions=show_s, add_date_prefix=add_d
-        )
-        # Also save to lastgen for session recovery
-        lastgen_dict = {
+        # Build config dictionary
+        session_config = {
             "model": m, "vae": v, "cfg_scale": cfg, "width": w, "height": h, "steps": stp, "sampler": smp,
             "common_prompt": cp, "common_negative": cn,
             "active_outfits": outfits, "active_morphs": morphs, "active_body_parts": body, "active_styles": styles,
@@ -1313,12 +1321,17 @@ with gr.Blocks(title="HaremBatch UI") as ui:
             "generation_mode": mode,
             "img2img_template": stable_t, "img2img_denoising": dens, "img2img_ignore_height_guide": ign_h,
             "controlnet_pose": stable_p, "controlnet_module": cn_mod, "controlnet_model": cn_model, "controlnet_weight": cn_w, "controlnet_control_mode": cn_mode,
-            "controlnet_pixel_perfect": cn_pp, "controlnet_processor_res": cn_res,
+            "controlnet_pixel_perfect": cn_pp, "controlnet_processor_res": cn_res, 
             "controlnet_guidance_start": cn_guid_start, "controlnet_guidance_end": cn_guid_end,
             "merge_format": m_fmt,
             "show_suggestions": show_s, "add_date_prefix": add_d
         }
-        save_lastgen(lastgen_dict)
+
+        # Save using the new dict support
+        save_gen_config(config_dict=session_config)
+        
+        # Also save to lastgen for session recovery
+        save_lastgen(session_config)
         return None
 
     # Wire to all relevant events
@@ -1378,22 +1391,96 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         fn=load_character_full,
         inputs=[dd_character],
         outputs=char_ui_outputs
+    ).then(
+        fn=lambda: gr.update(choices=get_character_files(), value=[c["name"] for c in get_active_characters()]),
+        outputs=[cbg_active_chars]
     )
     
     # save_inputs now includes height_guide and model_category after loras
     save_inputs = [dd_character, txt_char_positive, txt_char_negative, txt_char_loras, dd_height_guide, dd_char_model_category] + outfit_inputs + morph_inputs + body_inputs
     save_outputs = [char_status, row_futa_warn]
     
+    # --- Refactored Save Handler ---
+    def safe_save_wrapper(name, positive, negative, loras_text, height_guide, model_category, *all_values):
+        """Safe wrapper to unpack UI values into dictionaries before saving."""
+        # Note: We still receive flat list from Gradio, but we handle parsing here where inputs are defined.
+        # This keeps the fragility contained in main.py next to input definitions.
+        
+        # We need access to the keys to map values
+        from config import get_all_outfit_keys, get_all_morph_keys, get_all_body_keys
+        
+        outfit_keys = get_all_outfit_keys()
+        morph_keys = get_all_morph_keys()
+        body_keys = get_all_body_keys()
+        
+        outfits = {}
+        morphs = {}
+        body = {}
+        
+        ptr = 0
+        
+        # 1. Outfits
+        for key in outfit_keys:
+            if ptr + 1 < len(all_values):
+                pos = all_values[ptr]
+                neg = all_values[ptr+1]
+                outfits[key] = {"positive": pos or "", "negative": neg or ""}
+                ptr += 2
+                
+        # 2. Morphs
+        for key in morph_keys:
+            if ptr + 1 < len(all_values):
+                pos = all_values[ptr]
+                neg = all_values[ptr+1]
+                morphs[key] = {"positive": pos or "", "negative": neg or ""}
+                ptr += 2
+                
+        # 3. Body Parts
+        for key in body_keys:
+            if ptr + 1 < len(all_values):
+                pos = all_values[ptr]
+                neg = all_values[ptr+1]
+                body[key] = {"positive": pos or "", "negative": neg or ""}
+                ptr += 2
+                
+        from characters import save_character
+        
+        # Normalize height_guide
+        from data import HEIGHT_GUIDES
+        # If label passed, find key
+        hg_key = "average"
+        if height_guide in HEIGHT_GUIDES:
+             hg_key = height_guide
+        else:
+             for k, v in HEIGHT_GUIDES.items():
+                  if v["label"] == height_guide:
+                       hg_key = k
+                       break
+        
+        loras = [l.strip() for l in loras_text.split('\n') if l.strip()]
+        
+        # Preserve active state
+        from characters import load_character
+        curr = load_character(name)
+        active = curr.get("active", True) if curr else True
+        
+        msg = save_character(
+            name, positive, negative, outfits, morphs, 
+            active=active, body=body, loras=loras, 
+            height_guide=hg_key, model_category=model_category
+        )
+        return (msg + " 💚", gr.update(visible=False))
+
     def do_save(*args):
         msg = save_character_from_ui(*args)
         return (msg + " 💚", gr.update(visible=False))
     
     btn_save_char.click(
-        fn=do_save,
+        fn=safe_save_wrapper,
         inputs=save_inputs,
         outputs=save_outputs
     )
-    
+
     btn_save_char_top.click(
         fn=do_save,
         inputs=save_inputs,
@@ -1407,6 +1494,9 @@ with gr.Blocks(title="HaremBatch UI") as ui:
     ).then(
         fn=lambda: gr.update(choices=get_character_files()),
         outputs=[dd_character]
+    ).then(
+        fn=lambda: gr.update(choices=get_character_files(), value=[c['name'] for c in get_active_characters()]),
+        outputs=[cbg_active_chars]
     )
     
     btn_add_outfit.click(
@@ -1465,6 +1555,9 @@ with gr.Blocks(title="HaremBatch UI") as ui:
     ).then(
         fn=lambda: "\n".join([c["name"] for c in get_active_characters()]),
         outputs=[txt_active_order]
+    ).then(
+        fn=lambda: gr.update(choices=get_character_files(), value=[c['name'] for c in get_active_characters()]),
+        outputs=[cbg_active_chars]
     )
     
     # Styles Tab Actions
@@ -1597,7 +1690,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         fn=lambda: gr.update(choices=get_generated_presets() + get_preset_files(), value=None),
         outputs=[dd_preset]
     ).then(
-        fn=lambda: (gr.update(value=""), gr.update(value=[])),
+        fn=lambda: (gr.update(value=""), gr.update(choices=get_character_files(), value=[])),
         outputs=[txt_preset_name, cbg_active_chars]
     )
     
@@ -1610,6 +1703,16 @@ with gr.Blocks(title="HaremBatch UI") as ui:
         fn=set_active_characters_from_list,
         inputs=[cbg_active_chars],
         outputs=[preset_status]
+    ).then(
+        fn=get_active_summary,
+        inputs=[txt_active_order],
+        outputs=[txt_active_main]
+    )
+
+    txt_active_order.change(
+        fn=get_active_summary,
+        inputs=[txt_active_order],
+        outputs=[txt_active_main]
     )
 
     # Auto-load on dropdown change
@@ -1641,17 +1744,17 @@ with gr.Blocks(title="HaremBatch UI") as ui:
     )
     
     btn_activate_all.click(
-        fn=lambda: (activate_all_characters(), get_character_files())[1],
+        fn=lambda: (activate_all_characters(), gr.update(choices=get_character_files(), value=get_character_files()))[1],
         outputs=[cbg_active_chars]
     )
     
     btn_deactivate_all.click(
-        fn=lambda: (deactivate_all_characters(), [])[1],
+        fn=lambda: (deactivate_all_characters(), gr.update(choices=get_character_files(), value=[]))[1],
         outputs=[cbg_active_chars]
     )
     
     btn_new_empty_preset.click(
-        fn=lambda: (gr.update(value=""), gr.update(value=[])),
+        fn=lambda: (gr.update(value=""), gr.update(choices=get_character_files(), value=[])),
         outputs=[txt_preset_name, cbg_active_chars]
     )
     
@@ -1661,7 +1764,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
     )
 
     btn_new_full_preset.click(
-        fn=lambda: (gr.update(value=""), gr.update(value=get_character_files())),
+        fn=lambda: (gr.update(value=""), gr.update(choices=get_character_files(), value=get_character_files())),
         outputs=[txt_preset_name, cbg_active_chars]
     )
     
