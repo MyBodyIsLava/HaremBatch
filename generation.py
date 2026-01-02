@@ -16,12 +16,10 @@ import characters # specific import for loading by name
 import shutil
 
 # --- GLOBAL STOP FLAG ---
-STOP_GENERATION = False
-
 def request_stop_generation():
     """Signal generation to stop."""
-    global STOP_GENERATION
-    STOP_GENERATION = True
+    from data import GEN_STATE
+    GEN_STATE.stop()
     return "🛑 Stop requested..."
 def encode_pil_to_base64(image):
     """Convert a PIL Image to a base64 string."""
@@ -276,9 +274,10 @@ def generate_characters_batch(
     online, api_url = find_forge()
     gen_cfg = load_gen_config()
     from styles import load_style
+    from data import GEN_STATE
     
-    global STOP_GENERATION
-    STOP_GENERATION = False
+    # Reset stop flag at start of batch
+    GEN_STATE.reset()
     
     # Determine active characters
     if active_character_names:
@@ -427,7 +426,7 @@ def generate_characters_batch(
     print(f"DEBUG: Active chars count: {len(active_chars)}, mode: {generation_mode}")
     for i, char in enumerate(active_chars):
         # --- CANCELLATION CHECK ---
-        if STOP_GENERATION:
+        if GEN_STATE.should_stop:
             yield (generated_images[-1] if generated_images else None), "🛑 Generation Cancelled!"
             # Cleanup if a set was created and we want to stop fully? 
             # User asked to "remove file generate" -> remove all generated images for this batch
@@ -540,6 +539,10 @@ def generate_characters_batch(
         height_label = HEIGHT_GUIDES.get(height_guide_key, {}).get("label", "Average")
         yield (generated_images[-1] if generated_images else None), f"Generating {char_name} [{height_label}] ({i+1}/{len(active_chars)})..."
         
+        # Sanitize prompts (remove newlines primarily)
+        full_prompt = full_prompt.replace('\n', ' ').replace('\r', ' ')
+        full_negative = full_negative.replace('\n', ' ').replace('\r', ' ')
+        
         # Build base payload
         payload = {
             "prompt": full_prompt,
@@ -585,6 +588,9 @@ def generate_characters_batch(
                 continue
         
         try:
+            print(f"📝 Prompt: {payload['prompt']}")
+            print(f"📝 Negative: {payload['negative_prompt']}")
+            
             response = requests.post(f"{api_url}/sdapi/v1/{endpoint}", json=payload)
             if response.status_code == 200:
                 r = response.json()
@@ -595,6 +601,8 @@ def generate_characters_batch(
                 timestamp = int(time.time())
                 safe_name = "".join(c for c in char_name if c.isalnum() or c in "._- ")
                 outfit_id = "_".join(outfit_keys) if outfit_keys else ""
+                
+                print(f"🎨 Generated: {char_name} (Outfit: {outfit_id or 'Default'})")
                 morph_id = "_".join(morph_keys) if morph_keys else ""
                 filename_parts = [safe_name]
                 if outfit_id: filename_parts.append(outfit_id)
@@ -633,7 +641,11 @@ def generate_characters_batch(
                 generated_images.append(filename)
                 yield filename, f"✅ {char_name} done."
             else:
-                yield (generated_images[-1] if generated_images else None), f"❌ {char_name} failed: {response.status_code}"
+                try:
+                    error_details = response.json()
+                except:
+                    error_details = response.text
+                yield (generated_images[-1] if generated_images else None), f"❌ {char_name} failed: {response.status_code} - {error_details}"
                 
         except Exception as e:
             yield (generated_images[-1] if generated_images else None), f"❌ {char_name} error: {str(e)}"
@@ -807,9 +819,12 @@ def regenerate_set_image(set_name, image_index, nudge_params=None):
         # Update Seed
         payload["seed"] = -1
         
-        yield f"🔄 Regenerating {img_entry['char_name']}..."
+        yield None, f"🔄 Regenerating {img_entry['char_name']}..."
         
         # Call API
+        print(f"📝 Prompt: {payload['prompt']}")
+        print(f"📝 Negative: {payload['negative_prompt']}")
+        
         response = requests.post(endpoint_url, json=payload)
         
         if response.status_code == 200:
@@ -829,13 +844,14 @@ def regenerate_set_image(set_name, image_index, nudge_params=None):
             target_path, clean_filename = prepare_set_image_path(set_name, img_entry["char_name"])
             image.save(target_path, pnginfo=pnginfo)
             
-            yield f"✅ {img_entry['char_name']} regenerated!"
+            print(f"✅ Regenerated: {img_entry['char_name']}")
+            yield None, f"✅ {img_entry['char_name']} regenerated!"
             
         else:
-            yield f"❌ Failed: {response.status_code}"
+            yield None, f"❌ Failed: {response.status_code}"
             
     except Exception as e:
-        yield f"❌ Error: {str(e)}"
+        yield None, f"❌ Error: {str(e)}"
 
 def generate_variant(
     set_name, image_index, similarity=0.9, 
