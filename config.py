@@ -77,42 +77,28 @@ def save_config(api_url, forge_path, extra_args, save_metadata=True):
     clear_config_caches()
     return "✅ Configuration saved!"
 
-def save_gen_config(model=None, vae=None, cfg_scale=None, width=None, height=None, steps=None, sampler=None, common_prompt=None, common_negative=None, outfits_text=None, morphs_text=None, body_text=None, show_suggestions=None, controlnet_control_mode=None, controlnet_pixel_perfect=None, controlnet_processor_res=None, controlnet_guidance_start=None, controlnet_guidance_end=None, merge_format=None, **kwargs):
+def save_gen_config(config_dict=None, **kwargs):
     config = load_gen_config()
     
-    # Update with positional args if provided
-    updates = {
-        "model": model,
-        "vae": vae,
-        "cfg_scale": cfg_scale,
-        "width": width,
-        "height": height,
-        "steps": steps,
-        "sampler": sampler,
-        "common_prompt": common_prompt,
-        "common_negative": common_negative,
-        "show_suggestions": show_suggestions,
-        "controlnet_control_mode": controlnet_control_mode,
-        "controlnet_pixel_perfect": controlnet_pixel_perfect,
-        "controlnet_processor_res": controlnet_processor_res,
-        "controlnet_guidance_start": controlnet_guidance_start,
-        "controlnet_guidance_end": controlnet_guidance_end,
-        "merge_format": merge_format
-    }
-    
-    # Merge positional updates
-    for k, v in updates.items():
-        if v is not None:
-            config[k] = v
-            
-    # Merge keyword updates
+    # Update from config_dict if provided (new way)
+    if config_dict and isinstance(config_dict, dict):
+        # We need to handle special cases like None means empty, etc.
+        # But generally we trust the dict.
+        # Filter keys that are valid config keys
+        valid_keys = config.keys()
+        for k, v in config_dict.items():
+             config[k] = v
+             
+    # Update from kwargs (legacy way + partial updates)
     for k, v in kwargs.items():
         if v is not None:
-            config[k] = v
-        # Special case: allow empty strings (clearing images)
+             config[k] = v
+        # Special handling for clearing values
         elif k in ["img2img_template", "controlnet_pose"]:
              config[k] = ""
-    
+             
+    # Handle text inputs for names if they are in kwargs (from UI)
+    outfits_text = kwargs.get("outfits_text")
     if outfits_text is not None:
         outfit_names = {}
         for line in outfits_text.strip().split('\n'):
@@ -121,6 +107,7 @@ def save_gen_config(model=None, vae=None, cfg_scale=None, width=None, height=Non
                 outfit_names[key.strip()] = name.strip()
         config["outfit_names"] = outfit_names
 
+    morphs_text = kwargs.get("morphs_text")
     if morphs_text is not None:
         morph_names = {}
         for line in morphs_text.strip().split('\n'):
@@ -129,6 +116,7 @@ def save_gen_config(model=None, vae=None, cfg_scale=None, width=None, height=Non
                 morph_names[key.strip()] = name.strip()
         config["morph_names"] = morph_names
 
+    body_text = kwargs.get("body_text")
     if body_text is not None:
         body_names = {}
         for line in body_text.strip().split('\n'):
