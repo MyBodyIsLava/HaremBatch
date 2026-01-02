@@ -387,12 +387,17 @@ def toggle_character_active(name, active):
             json.dump(char, f, indent=2)
     return f"{'✅ Active' if active else '❌ Inactive'}: {name}"
 
-def get_active_summary():
-    """Get summary of active characters."""
-    active = get_active_characters()
-    if not active:
-        return "No active characters"
-    names = [str(c.get('name', 'Unknown')) for c in active if c and c.get('name') is not None]
+def get_active_summary(ordered_names=None):
+    """Get summary of active characters. If ordered_names is provided, use that order."""
+    if ordered_names is None:
+        active = get_active_characters()
+        names = [str(c.get('name', 'Unknown')) for c in active if c and c.get('name') is not None]
+    else:
+        if isinstance(ordered_names, str):
+            names = [n.strip() for n in ordered_names.split('\n') if n.strip()]
+        else:
+            names = ordered_names
+            
     if not names:
         return "No active characters"
     return f"Active: {', '.join(names)}"
