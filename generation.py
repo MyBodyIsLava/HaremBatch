@@ -334,6 +334,7 @@ def generate_characters_batch(
     
     # Initialize Set
     set_name = None
+    set_created = False
     if set_name_input is not None:
         timestamp_str = time.strftime("%Y%m%d_%H%M%S")
         
@@ -364,6 +365,7 @@ def generate_characters_batch(
         if set_name:
             if not os.path.exists(get_set_path(set_name)):
                 set_name, set_data = create_set(set_name, gen_cfg, [c["name"] for c in active_chars], set_prompt=set_prompt, set_negative=set_negative)
+                set_created = True
                 yield None, f"📁 Created set: {set_name}"
                 
             # --- Save Inputs (Future Proofing) ---
@@ -462,7 +464,7 @@ def generate_characters_batch(
                 
                 # Re-reading user request: "cancel the set and remove file generate"
                 # implying the whole set should be nuked if we were making one.
-                if set_name_input: # If we were creating a named/new set
+                if set_created: # If we were creating a named/new set
                      delete_set(set_name)
                      yield None, f"🗑️ Set '{set_name}' deleted."
             
@@ -661,7 +663,7 @@ def regenerate_set_image(set_name, image_index, nudge_params=None):
     from sets import load_set, prepare_set_image_path, add_image_to_set
     
     if not online:
-        yield "❌ Forge is OFFLINE"
+        yield None, "❌ Forge is OFFLINE"
         return
         
     cfg = load_config()
@@ -669,20 +671,20 @@ def regenerate_set_image(set_name, image_index, nudge_params=None):
         
     set_data = load_set(set_name)
     if not set_data:
-        yield "❌ Set not found"
+        yield None, "❌ Set not found"
         return
             
     try:
         image_index = int(image_index)
         if image_index < 0 or image_index >= len(set_data["images"]):
-            yield "❌ Invalid image index"
+            yield None, "❌ Invalid image index"
             return
             
         img_entry = set_data["images"][image_index]
         payload = img_entry.get("params", {}).copy()
         
         if not payload:
-            yield "❌ No params found for this image"
+            yield None, "❌ No params found for this image"
             return
             
         # --- ROBUST INPUT RESTORATION ---
@@ -822,8 +824,8 @@ def regenerate_set_image(set_name, image_index, nudge_params=None):
         yield None, f"🔄 Regenerating {img_entry['char_name']}..."
         
         # Call API
-        print(f"📝 Prompt: {payload['prompt']}")
-        print(f"📝 Negative: {payload['negative_prompt']}")
+        print(f"📝 Prompt: {payload['prompt']}", flush=True)
+        print(f"📝 Negative: {payload['negative_prompt']}", flush=True)
         
         response = requests.post(endpoint_url, json=payload)
         
@@ -924,6 +926,9 @@ def generate_variant(
         
         yield None, f"🎨 Generating variant ({int(similarity*100)}% similarity)..."
         
+        print(f"📝 Prompt: {payload.get('prompt', '')}", flush=True)
+        print(f"📝 Negative: {payload.get('negative_prompt', '')}", flush=True)
+
         response = requests.post(endpoint_url, json=payload)
         
         if response.status_code == 200:
