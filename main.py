@@ -176,6 +176,10 @@ def replace_image_wrapper(set_name, idx, file_obj):
     if file_obj:
         replace_image_in_set(set_name, idx, file_obj.name)
 
+def delete_image_wrapper(set_name, idx):
+    from sets import delete_image_from_set
+    return delete_image_from_set(set_name, idx)
+
 def on_generation_complete():
     sets = list_sets()
     latest = sets[0] if sets else None
@@ -422,7 +426,8 @@ with gr.Blocks(title="HaremBatch UI") as ui:
             with gr.Row():
                 with gr.Column(scale=4):
                     with gr.Row():
-                        dd_sets = gr.Dropdown(label="Select Set", choices=list_sets(), scale=3)
+                        _initial_sets = list_sets()
+                        dd_sets = gr.Dropdown(label="Select Set", choices=_initial_sets, value=_initial_sets[0] if _initial_sets else None, scale=3)
                         btn_refresh_sets = gr.Button("🔄", scale=0, min_width=40)
                         btn_rename_set = gr.Button("✏️", scale=0, min_width=40)
                     
@@ -462,16 +467,23 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                 btn_cancel_delete_set = gr.Button("❌ Cancel", scale=1)
             
             refresh_trigger = gr.State(0)
+            selected_set_name = gr.State(_initial_sets[0] if _initial_sets else None)  # Store selected set name to avoid gr.render corrupting dropdown
+            
+            # Sync dropdown to state and force-refresh choices (workaround for Gradio @gr.render bug)
+            def sync_set_selection(x):
+                current_sets = list_sets()
+                return x, gr.update(choices=current_sets, value=x)
+            dd_sets.change(
+                fn=sync_set_selection,
+                inputs=[dd_sets],
+                outputs=[selected_set_name, dd_sets]  # Update both state AND dropdown choices
+            )
             
 
             btn_remove_bg.click(
                 fn=remove_background_from_set,
                 inputs=[dd_sets, slider_bg_threshold, cb_bg_contiguous],
                 outputs=[gr.Number(visible=False), merge_status]
-            ).then(
-                fn=lambda s: s, # Just trigger re-render
-                inputs=[dd_sets],
-                outputs=[dd_sets] # Hacky way to trigger render update via change? Not really.
             ).then(
                  fn=lambda: gr.update(value=time.time()), # Trigger re-render via state
                  outputs=[refresh_trigger]
@@ -711,9 +723,10 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                 outputs=[num_cn_res]
             )
 
-            @gr.render(inputs=[dd_sets, display_mode, zoom_slider, refresh_trigger])
+            @gr.render(inputs=[selected_set_name, display_mode, zoom_slider, refresh_trigger])
             def render_set(set_name, mode, zoom, trigger):
-                if not set_name: return
+                if not set_name: 
+                    return
                 set_data = load_set(set_name)
                 if not set_data:
                     gr.Markdown("❌ Failed to load set.")
@@ -732,36 +745,37 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                                 gr.Image(img_path, label=img["char_name"], show_label=False, interactive=False, container=False, width=zoom)
                                 
                                 with gr.Row(elem_classes=["frieze_button_row"]):
-                                    # Stable handlers using closures to capture i and img_path exactly
-                                    def move_l(t, idx=i): move_image_left(set_name, idx); return t + 1
-                                    def move_r(t, idx=i): move_image_right(set_name, idx); return t + 1
-                                    def flip_h(t, idx=i): msg = flip_image_wrapper(set_name, idx); return t + 1, msg
-                                    def refresh_h(t, idx=i):
-                                        gen = regenerate_set_image(set_name, idx)
-                                        msg = ""
-                                        for res in gen:
-                                            if isinstance(res, tuple): msg = res[1]
-                                            else: msg = res
-                                        return t + 1, msg
+                                    # Stable handlers using closures - MUST capture set_name AND idx by VALUE
+                                    def move_l(t, idx=i, sn=set_name): move_image_left(sn, idx); return t + 1
+                                    def move_r(t, idx=i, sn=set_name): move_image_right(sn, idx); return t + 1
+                                    def flip_h(t, idx=i, sn=set_name): msg = flip_image_wrapper(sn, idx); return t + 1, msg
                                     
                                     gr.Button("⬅️", size="sm", interactive=(i > 0)).click(fn=move_l, inputs=[refresh_trigger], outputs=[refresh_trigger])
                                     gr.Button("➡️", size="sm", interactive=(i < len(images) - 1)).click(fn=move_r, inputs=[refresh_trigger], outputs=[refresh_trigger])
                                     gr.Button("↔️", size="sm").click(fn=flip_h, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
                                     
                                     btn_rep = gr.UploadButton("📂", size="sm", file_types=["image"])
-                                    def upload_h(file_obj, t, idx=i):
-                                        replace_image_wrapper(set_name, idx, file_obj)
+                                    def upload_h(file_obj, t, idx=i, sn=set_name):
+                                        replace_image_wrapper(sn, idx, file_obj)
                                         return t + 1
                                     btn_rep.upload(fn=upload_h, inputs=[btn_rep, refresh_trigger], outputs=[refresh_trigger])
 
                                 with gr.Row(elem_classes=["frieze_button_row"]):
+                                    # Regenerate with feedback
+                                    def refresh_h(t, idx=i, sn=set_name, char=img["char_name"]):
+                                        gen = regenerate_set_image(sn, idx)
+                                        msg = ""
+                                        for res in gen:
+                                            if isinstance(res, tuple): msg = res[1]
+                                            else: msg = res
+                                        return t + 1, f"✅ {char} regenerated" if "✅" not in msg else msg
                                     gr.Button("🔄", size="sm", interactive=forge_online).click(fn=refresh_h, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
                                     
                                     def open_nudge_h(idx=i): return open_nudge_ui(idx)
                                     gr.Button("🪄", size="sm", interactive=forge_online).click(fn=open_nudge_h, outputs=[nudge_panel, nudge_target_index, txt_nudge_prompt, txt_nudge_negative, img_nudge_source])
                                     
-                                    def start_ab_h(idx=i): return start_ab_test(set_name, idx)
-                                    def run_ab_h(similarity, idx=i): return run_ab_generation(set_name, idx, similarity)
+                                    def start_ab_h(idx=i, sn=set_name): return start_ab_test(sn, idx)
+                                    def run_ab_h(similarity, idx=i, sn=set_name): return run_ab_generation(sn, idx, similarity)
                                     
                                     gr.Button("⚖️", size="sm", interactive=forge_online).click(
                                         fn=start_ab_h, 
@@ -773,6 +787,12 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                                     )
                                     
                                     gr.Button("💾", size="sm").click(fn=lambda p=img_path: gr.update(value=p, visible=True), outputs=[export_file])
+                                    
+                                    # Delete button
+                                    def delete_h(t, idx=i, sn=set_name):
+                                        success, msg = delete_image_wrapper(sn, idx)
+                                        return t + 1, msg
+                                    gr.Button("🗑️", size="sm", variant="stop").click(fn=delete_h, inputs=[refresh_trigger], outputs=[refresh_trigger, status_box])
                 else:
                     with gr.Row(variant="panel"):
                          gr.Gallery([os.path.join(get_set_path(set_name), img["filename"]) for img in images], columns=4)
@@ -1065,7 +1085,7 @@ with gr.Blocks(title="HaremBatch UI") as ui:
                     dd_merge_format = gr.Dropdown(
                         label="Merge Format",
                         choices=["png", "webp"],
-                        value=gen_config.get("merge_format", "webp"),
+                        value=load_gen_config().get("merge_format", "webp"),
                         info="WebP is much smaller, PNG is more compatible."
                     )
 
