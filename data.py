@@ -12,6 +12,31 @@ TEMPLATES_DIR = "templates"
 EXAMPLES_DIR = "examples"
 LASTGEN_FILE = "_lastgen.json"
 
+# --- GLOBAL STATE (Thread-Safe) ---
+import threading
+
+class GenerationState:
+    """Thread-safe state for generation process."""
+    def __init__(self):
+        self._stop_event = threading.Event()
+        self._lock = threading.Lock()
+        
+    def stop(self):
+        """Signal generation to stop."""
+        self._stop_event.set()
+        
+    def reset(self):
+        """Reset state for new generation."""
+        self._stop_event.clear()
+        
+    @property
+    def should_stop(self):
+        """Check if stop has been requested."""
+        return self._stop_event.is_set()
+
+# Singleton instance
+GEN_STATE = GenerationState()
+
 # Create directories
 for d in [OUTPUT_DIR, CHARACTERS_DIR, PRESETS_DIR, STYLES_DIR, TEMPLATES_DIR, EXAMPLES_DIR, "inputs"]:
     if not os.path.exists(d):
