@@ -3,6 +3,7 @@ import json
 import time
 import shutil
 from data import OUTPUT_DIR
+from PIL import Image
 
 # Ensure output directory exists
 if not os.path.exists(OUTPUT_DIR):
@@ -132,8 +133,32 @@ def add_image_to_set(set_name, filename, char_name, params=None):
     save_set(set_name, set_data)
     return True
 
+def delete_image_from_set(set_name, index):
+    """Delete an image from the set at the given index. Moves file to _old."""
+    set_data = load_set(set_name)
+    if not set_data or index < 0 or index >= len(set_data["images"]):
+        return False, "❌ Invalid index"
+    
+    img_entry = set_data["images"][index]
+    char_name = img_entry["char_name"]
+    filename = img_entry["filename"]
+    
+    set_path = get_set_path(set_name)
+    file_path = os.path.join(set_path, filename)
+    old_path = os.path.join(set_path, "_old")
+    
+    # Move file to _old if it exists
+    if os.path.exists(file_path):
+        os.makedirs(old_path, exist_ok=True)
+        timestamp = int(time.time())
+        old_filename = f"{os.path.splitext(filename)[0]}_{timestamp}{os.path.splitext(filename)[1]}"
+        shutil.move(file_path, os.path.join(old_path, old_filename))
+    
+    # Remove from set data
+    set_data["images"].pop(index)
     save_set(set_name, set_data)
-    return True
+    
+    return True, f"🗑️ Removed {char_name}"
 
 def replace_image_in_set(set_name, index, new_file_path):
     """Replace an image in the set with a new file. Moves old to _old."""
@@ -429,13 +454,12 @@ def remove_background_from_set(set_name, threshold=10, contiguous=True):
                 arr[mask, 3] = 0
                 img = Image.fromarray(arr)
         
+            # 3. Save to DISPLAY filename (original filename)
+            img.save(file_path, "PNG")
+            processed_count += 1
+        
         except Exception as e:
             print(f"Error processing {filename}: {e}")
-            pass
-            
-        # 3. Save to DISPLAY filename (original filename)
-        img.save(file_path, "PNG")
-        processed_count += 1
             
     return processed_count, f"Processed {processed_count} images."
 
